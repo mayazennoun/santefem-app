@@ -6,6 +6,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateD
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   Modal,
   ScrollView,
   StatusBar,
@@ -16,6 +17,10 @@ import {
   View,
 } from 'react-native';
 import { auth, db } from './firebaseConfig';
+
+const { width } = Dimensions.get('window');
+const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
 interface Appointment {
   id: string;
@@ -31,11 +36,14 @@ interface Appointment {
   createdAt: Date;
 }
 
-export default function Appointments() {
+export default function Calendar() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState<Date | null>(null);
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -51,12 +59,27 @@ export default function Appointments() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
+    // Récupérer date d'accouchement
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    const unsubUser = onSnapshot(userRef, docSnap => {
+      if (docSnap.exists()) {
+        const dueDateStr = docSnap.data().dateAccouchement;
+        if (dueDateStr) {
+          const parts = dueDateStr.split('/');
+          if (parts.length === 3) {
+            const parsedDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            setDueDate(parsedDate);
+          }
+        }
+      }
+    });
+
     const q = query(
       collection(db, 'users', auth.currentUser.uid, 'appointments'),
       orderBy('date', 'asc')
     );
 
-    const unsubscribe = onSnapshot(q, snapshot => {
+    const unsubAppointments = onSnapshot(q, snapshot => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -65,8 +88,64 @@ export default function Appointments() {
       setAppointments(data);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubUser();
+      unsubAppointments();
+    };
   }, []);
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days: (number | null)[] = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+
+  const getAppointmentsForDate = (day: number) => {
+    const dateStr = `${String(day).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
+    return appointments.filter(apt => apt.date === dateStr);
+  };
+
+  const getSelectedDateAppointments = () => {
+    const dateStr = `${String(selectedDate.getDate()).padStart(2, '0')}/${String(selectedDate.getMonth() + 1).padStart(2, '0')}/${selectedDate.getFullYear()}`;
+    return appointments.filter(apt => apt.date === dateStr);
+  };
+
+  const isToday = (day: number) => {
+    const today = new Date();
+    return day === today.getDate() && 
+           currentDate.getMonth() === today.getMonth() && 
+           currentDate.getFullYear() === today.getFullYear();
+  };
+
+  const isSelected = (day: number) => {
+    return day === selectedDate.getDate() && 
+           currentDate.getMonth() === selectedDate.getMonth() && 
+           currentDate.getFullYear() === selectedDate.getFullYear();
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const handleDateSelect = (day: number) => {
+    setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
+  };
 
   const handleSaveAppointment = async () => {
     if (!auth.currentUser) return;
@@ -113,7 +192,6 @@ export default function Appointments() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'appointments', id));
-            Alert.alert('Succès', 'Rendez-vous supprimé');
           } catch (error) {
             Alert.alert('Erreur', 'Impossible de supprimer');
           }
@@ -146,6 +224,13 @@ export default function Appointments() {
     setModalVisible(true);
   };
 
+  const handleQuickAdd = () => {
+    const dateStr = `${String(selectedDate.getDate()).padStart(2, '0')}/${String(selectedDate.getMonth() + 1).padStart(2, '0')}/${selectedDate.getFullYear()}`;
+    resetForm();
+    setDate(dateStr);
+    setModalVisible(true);
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setTitle('');
@@ -156,6 +241,14 @@ export default function Appointments() {
     setType('consultation');
     setNotes('');
     setReminder(true);
+  };
+
+  const getDaysUntilDue = () => {
+    if (!dueDate) return null;
+    const today = new Date();
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
   const getTypeIcon = (type: string) => {
@@ -176,8 +269,9 @@ export default function Appointments() {
     }
   };
 
-  const upcomingAppointments = appointments.filter(a => !a.completed);
-  const completedAppointments = appointments.filter(a => a.completed);
+  const days = getDaysInMonth(currentDate);
+  const selectedDateAppointments = getSelectedDateAppointments();
+  const daysUntilDue = getDaysUntilDue();
 
   if (!fontsLoaded) return null;
 
@@ -189,119 +283,176 @@ export default function Appointments() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Rendez-vous</Text>
-          <TouchableOpacity
-            onPress={() => {
-              resetForm();
-              setModalVisible(true);
-            }}
-            style={styles.addButton}
-          >
+          <Text style={styles.headerTitle}>Calendrier</Text>
+          <TouchableOpacity onPress={handleQuickAdd} style={styles.addButton}>
             <Ionicons name="add" size={28} color="#C4ABDC" />
           </TouchableOpacity>
         </View>
 
+        {daysUntilDue !== null && daysUntilDue >= 0 && (
+          <View style={styles.countdownCard}>
+            <View style={styles.countdownIcon}>
+              <Ionicons name="heart-outline" size={24} color="#FFB5E8" />
+            </View>
+            <View style={styles.countdownInfo}>
+              <Text style={styles.countdownNumber}>{daysUntilDue}</Text>
+              <Text style={styles.countdownLabel}>jours avant l'accouchement</Text>
+            </View>
+          </View>
+        )}
+
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>{upcomingAppointments.length}</Text>
-                <Text style={styles.statLabel}>À venir</Text>
+            <View style={styles.calendarCard}>
+              <View style={styles.calendarHeader}>
+                <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
+                  <Ionicons name="chevron-back" size={24} color="#C4ABDC" />
+                </TouchableOpacity>
+                <Text style={styles.monthYear}>
+                  {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </Text>
+                <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
+                  <Ionicons name="chevron-forward" size={24} color="#C4ABDC" />
+                </TouchableOpacity>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>{completedAppointments.length}</Text>
-                <Text style={styles.statLabel}>Complétés</Text>
+
+              <View style={styles.daysHeader}>
+                {DAYS.map((day, idx) => (
+                  <Text key={idx} style={styles.dayName}>{day}</Text>
+                ))}
+              </View>
+
+              <View style={styles.daysGrid}>
+                {days.map((day, idx) => {
+                  if (day === null) {
+                    return <View key={idx} style={styles.emptyDay} />;
+                  }
+
+                  const dayAppointments = getAppointmentsForDate(day);
+                  const hasAppointments = dayAppointments.length > 0;
+                  const isTodayDate = isToday(day);
+                  const isSelectedDate = isSelected(day);
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.dayCell,
+                        isTodayDate && styles.todayCell,
+                        isSelectedDate && styles.selectedCell,
+                      ]}
+                      onPress={() => handleDateSelect(day)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.dayNumber,
+                        isTodayDate && styles.todayNumber,
+                        isSelectedDate && styles.selectedNumber,
+                      ]}>
+                        {day}
+                      </Text>
+                      {hasAppointments && (
+                        <View style={styles.appointmentDots}>
+                          {dayAppointments.slice(0, 3).map((apt, i) => (
+                            <View 
+                              key={i} 
+                              style={[styles.appointmentDot, { backgroundColor: getTypeColor(apt.type) }]} 
+                            />
+                          ))}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>À venir</Text>
-            {upcomingAppointments.length === 0 ? (
+            <View style={styles.selectedDateHeader}>
+              <View style={styles.selectedDateInfo}>
+                <Text style={styles.selectedDateDay}>
+                  {selectedDate.getDate()}
+                </Text>
+                <View>
+                  <Text style={styles.selectedDateMonth}>
+                    {MONTHS[selectedDate.getMonth()]}
+                  </Text>
+                  <Text style={styles.selectedDateYear}>
+                    {selectedDate.getFullYear()}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.selectedDateStats}>
+                <Text style={styles.selectedDateCount}>
+                  {selectedDateAppointments.length}
+                </Text>
+                <Text style={styles.selectedDateCountLabel}>RDV</Text>
+              </View>
+            </View>
+
+            {selectedDateAppointments.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={60} color="#5D3A7D" />
+                <Ionicons name="calendar-outline" size={50} color="#5D3A7D" />
                 <Text style={styles.emptyText}>Aucun rendez-vous</Text>
-                <Text style={styles.emptySubtext}>Ajoutez votre premier RDV</Text>
+                <TouchableOpacity style={styles.addQuickButton} onPress={handleQuickAdd}>
+                  <Text style={styles.addQuickButtonText}>Ajouter un RDV</Text>
+                </TouchableOpacity>
               </View>
             ) : (
-              upcomingAppointments.map(appointment => (
+              selectedDateAppointments.map(appointment => (
                 <View key={appointment.id} style={styles.appointmentCard}>
-                  <TouchableOpacity
-                    style={styles.checkboxContainer}
-                    onPress={() => handleToggleCompleted(appointment.id, appointment.completed)}
-                  >
-                    <View style={styles.checkbox}>
-                      {appointment.completed && <Ionicons name="checkmark" size={18} color="#C4ABDC" />}
-                    </View>
-                  </TouchableOpacity>
-
-                  <View style={[styles.appointmentIconContainer, { backgroundColor: getTypeColor(appointment.type) + '33' }]}>
-                    <Ionicons name={getTypeIcon(appointment.type) as any} size={24} color={getTypeColor(appointment.type)} />
-                  </View>
-
+                  <View style={[styles.appointmentColor, { backgroundColor: getTypeColor(appointment.type) }]} />
+                  
                   <View style={styles.appointmentContent}>
-                    <Text style={styles.appointmentTitle}>{appointment.title}</Text>
-                    <View style={styles.appointmentRow}>
-                      <Ionicons name="calendar-outline" size={14} color="#9B88D3" />
-                      <Text style={styles.appointmentDetail}>{appointment.date} à {appointment.time}</Text>
-                    </View>
-                    <View style={styles.appointmentRow}>
-                      <Ionicons name="person-outline" size={14} color="#9B88D3" />
-                      <Text style={styles.appointmentDetail}>{appointment.doctor}</Text>
-                    </View>
-                    {appointment.location && (
-                      <View style={styles.appointmentRow}>
-                        <Ionicons name="location-outline" size={14} color="#9B88D3" />
-                        <Text style={styles.appointmentDetail}>{appointment.location}</Text>
+                    <View style={styles.appointmentHeader}>
+                      <View style={[styles.appointmentIcon, { backgroundColor: getTypeColor(appointment.type) + '33' }]}>
+                        <Ionicons name={getTypeIcon(appointment.type) as any} size={20} color={getTypeColor(appointment.type)} />
                       </View>
-                    )}
-                    {appointment.reminder && (
-                      <View style={styles.reminderBadge}>
-                        <Ionicons name="notifications-outline" size={12} color="#876BB8" />
-                        <Text style={styles.reminderText}>Rappel activé</Text>
+                      <View style={styles.appointmentHeaderText}>
+                        <Text style={styles.appointmentTitle}>{appointment.title}</Text>
+                        <Text style={styles.appointmentTime}>
+                          <Ionicons name="time-outline" size={14} color="#9B88D3" /> {appointment.time}
+                        </Text>
                       </View>
-                    )}
-                  </View>
+                      <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        onPress={() => handleToggleCompleted(appointment.id, appointment.completed)}
+                      >
+                        <View style={[styles.checkbox, appointment.completed && styles.checkboxCompleted]}>
+                          {appointment.completed && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    </View>
 
-                  <View style={styles.appointmentActions}>
-                    <TouchableOpacity onPress={() => handleEditAppointment(appointment)} style={styles.actionButton}>
-                      <Ionicons name="create-outline" size={20} color="#C4ABDC" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteAppointment(appointment.id)} style={styles.actionButton}>
-                      <Ionicons name="trash-outline" size={20} color="#FF9AA2" />
-                    </TouchableOpacity>
+                    <View style={styles.appointmentDetails}>
+                      <View style={styles.appointmentDetail}>
+                        <Ionicons name="person-outline" size={14} color="#9B88D3" />
+                        <Text style={styles.appointmentDetailText}>{appointment.doctor}</Text>
+                      </View>
+                      {appointment.location && (
+                        <View style={styles.appointmentDetail}>
+                          <Ionicons name="location-outline" size={14} color="#9B88D3" />
+                          <Text style={styles.appointmentDetailText}>{appointment.location}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity
+                        style={styles.appointmentActionButton}
+                        onPress={() => handleEditAppointment(appointment)}
+                      >
+                        <Ionicons name="create-outline" size={18} color="#C4ABDC" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.appointmentActionButton}
+                        onPress={() => handleDeleteAppointment(appointment.id)}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#FF9AA2" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))
-            )}
-
-            {completedAppointments.length > 0 && (
-              <>
-                <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Complétés</Text>
-                {completedAppointments.map(appointment => (
-                  <View key={appointment.id} style={[styles.appointmentCard, styles.completedCard]}>
-                    <TouchableOpacity
-                      style={styles.checkboxContainer}
-                      onPress={() => handleToggleCompleted(appointment.id, appointment.completed)}
-                    >
-                      <View style={[styles.checkbox, styles.checkboxCompleted]}>
-                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={[styles.appointmentIconContainer, { backgroundColor: getTypeColor(appointment.type) + '33' }]}>
-                      <Ionicons name={getTypeIcon(appointment.type) as any} size={24} color={getTypeColor(appointment.type)} />
-                    </View>
-
-                    <View style={styles.appointmentContent}>
-                      <Text style={[styles.appointmentTitle, styles.completedTitle]}>{appointment.title}</Text>
-                      <Text style={styles.appointmentDetail}>{appointment.date}</Text>
-                    </View>
-
-                    <TouchableOpacity onPress={() => handleDeleteAppointment(appointment.id)} style={styles.actionButton}>
-                      <Ionicons name="trash-outline" size={20} color="#FF9AA2" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </>
             )}
           </View>
         </ScrollView>
@@ -331,9 +482,10 @@ export default function Appointments() {
                   {['consultation', 'échographie', 'analyse'].map(t => (
                     <TouchableOpacity
                       key={t}
-                      style={[styles.typeButton, type === t && styles.typeButtonActive]}
+                      style={[styles.typeButton, type === t && { backgroundColor: getTypeColor(t) }]}
                       onPress={() => setType(t)}
                     >
+                      <Ionicons name={getTypeIcon(t) as any} size={18} color={type === t ? '#1B0E20' : getTypeColor(t)} />
                       <Text style={[styles.typeText, type === t && styles.typeTextActive]}>
                         {t.charAt(0).toUpperCase() + t.slice(1)}
                       </Text>
@@ -424,31 +576,57 @@ const styles = StyleSheet.create({
   backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(196,171,220,0.15)', justifyContent: 'center', alignItems: 'center' },
   addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(196,171,220,0.15)', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 24, color: '#FFFFFF', fontFamily: 'Poppins_700Bold' },
+  countdownCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,181,232,0.15)', borderRadius: 16, padding: 16, marginHorizontal: 24, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,181,232,0.3)' },
+  countdownIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,181,232,0.3)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  countdownInfo: { flex: 1 },
+  countdownNumber: { fontSize: 32, color: '#FFB5E8', fontFamily: 'Poppins_700Bold' },
+  countdownLabel: { fontSize: 14, color: '#FFB5E8', fontFamily: 'Poppins_400Regular' },
   scrollView: { flex: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 40 },
-  statsRow: { flexDirection: 'row', gap: 16, marginBottom: 32 },
-  statCard: { flex: 1, backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(196,171,220,0.2)' },
-  statValue: { fontSize: 32, color: '#FFFFFF', fontFamily: 'Poppins_700Bold' },
-  statLabel: { fontSize: 14, color: '#C4ABDC', fontFamily: 'Poppins_400Regular', marginTop: 4 },
-  sectionTitle: { fontSize: 20, color: '#FFFFFF', fontFamily: 'Poppins_700Bold', marginBottom: 16 },
-  emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { color: '#FFFFFF', fontSize: 18, fontFamily: 'Poppins_600SemiBold', marginTop: 16 },
-  emptySubtext: { color: '#C4ABDC', fontSize: 14, fontFamily: 'Poppins_400Regular', marginTop: 8 },
-  appointmentCard: { flexDirection: 'row', backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(196,171,220,0.2)', alignItems: 'flex-start' },
-  completedCard: { opacity: 0.6 },
-  checkboxContainer: { marginRight: 12, paddingTop: 2 },
+  calendarCard: { backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 20, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(196,171,220,0.2)' },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  monthButton: { padding: 8 },
+  monthYear: { fontSize: 18, color: '#FFFFFF', fontFamily: 'Poppins_700Bold' },
+  daysHeader: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
+  dayName: { width: (width - 80) / 7, textAlign: 'center', color: '#9B88D3', fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
+  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  emptyDay: { width: (width - 80) / 7, height: 48 },
+  dayCell: { width: (width - 80) / 7, height: 48, justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 4 },
+  todayCell: { backgroundColor: 'rgba(196,171,220,0.2)' },
+  selectedCell: { backgroundColor: '#C4ABDC' },
+  dayNumber: { fontSize: 14, color: '#FFFFFF', fontFamily: 'Poppins_600SemiBold' },
+  todayNumber: { color: '#C4ABDC', fontFamily: 'Poppins_700Bold' },
+  selectedNumber: { color: '#1B0E20', fontFamily: 'Poppins_700Bold' },
+  appointmentDots: { flexDirection: 'row', gap: 2, marginTop: 2 },
+  appointmentDot: { width: 4, height: 4, borderRadius: 2 },
+  selectedDateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(196,171,220,0.2)' },
+  selectedDateInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  selectedDateDay: { fontSize: 40, color: '#FFFFFF', fontFamily: 'Poppins_700Bold' },
+  selectedDateMonth: { fontSize: 16, color: '#C4ABDC', fontFamily: 'Poppins_600SemiBold' },
+  selectedDateYear: { fontSize: 13, color: '#9B88D3', fontFamily: 'Poppins_400Regular' },
+  selectedDateStats: { alignItems: 'center' },
+  selectedDateCount: { fontSize: 28, color: '#FFFFFF', fontFamily: 'Poppins_700Bold' },
+  selectedDateCountLabel: { fontSize: 12, color: '#C4ABDC', fontFamily: 'Poppins_400Regular' },
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Poppins_600SemiBold', marginTop: 12, marginBottom: 16 },
+  addQuickButton: { backgroundColor: 'rgba(196,171,220,0.2)', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(196,171,220,0.3)' },
+  addQuickButtonText: { color: '#C4ABDC', fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
+  appointmentCard: { flexDirection: 'row', backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: 'rgba(196,171,220,0.2)' },
+  appointmentColor: { width: 4 },
+  appointmentContent: { flex: 1, padding: 16 },
+  appointmentHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, gap: 12 },
+  appointmentIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  appointmentHeaderText: { flex: 1 },
+  appointmentTitle: { fontSize: 16, color: '#FFFFFF', fontFamily: 'Poppins_600SemiBold', marginBottom: 4 },
+  appointmentTime: { fontSize: 13, color: '#C4ABDC', fontFamily: 'Poppins_400Regular' },
+  checkboxContainer: { padding: 4 },
   checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#C4ABDC', justifyContent: 'center', alignItems: 'center' },
   checkboxCompleted: { backgroundColor: '#C4ABDC', borderColor: '#C4ABDC' },
-  appointmentIconContainer: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  appointmentContent: { flex: 1 },
-  appointmentTitle: { color: '#FFFFFF', fontSize: 16, fontFamily: 'Poppins_600SemiBold', marginBottom: 8 },
-  completedTitle: { textDecorationLine: 'line-through' },
-  appointmentRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 },
-  appointmentDetail: { color: '#C4ABDC', fontSize: 13, fontFamily: 'Poppins_400Regular' },
-  reminderBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(196,171,220,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginTop: 8, gap: 4 },
-  reminderText: { color: '#876BB8', fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
-  appointmentActions: { gap: 8, paddingTop: 2 },
-  actionButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(196,171,220,0.15)', justifyContent: 'center', alignItems: 'center' },
+  appointmentDetails: { marginBottom: 12, gap: 6 },
+  appointmentDetail: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  appointmentDetailText: { fontSize: 13, color: '#C4ABDC', fontFamily: 'Poppins_400Regular' },
+  appointmentActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: 'rgba(196,171,220,0.2)', paddingTop: 12 },
+  appointmentActionButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(196,171,220,0.15)', justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#2A1A35', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 24, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 24 },
@@ -457,10 +635,9 @@ const styles = StyleSheet.create({
   inputLabel: { color: '#C4ABDC', fontSize: 14, fontFamily: 'Poppins_600SemiBold', marginBottom: 8, marginTop: 16 },
   input: { backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 12, padding: 16, fontSize: 16, color: '#FFFFFF', fontFamily: 'Poppins_400Regular', borderWidth: 1, borderColor: 'rgba(196,171,220,0.3)' },
   textArea: { height: 100, textAlignVertical: 'top' },
-  typeSelector: { flexDirection: 'row', gap: 12, marginBottom: 8 },
-  typeButton: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(196,171,220,0.1)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(196,171,220,0.3)' },
-  typeButtonActive: { backgroundColor: '#C4ABDC', borderColor: '#C4ABDC' },
-  typeText: { color: '#C4ABDC', fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
+  typeSelector: { flexDirection: 'row', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+  typeButton: { flex: 1, minWidth: 100, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(196,171,220,0.1)', gap: 6, borderWidth: 1, borderColor: 'rgba(196,171,220,0.3)' },
+  typeText: { color: '#C4ABDC', fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
   typeTextActive: { color: '#1B0E20' },
   reminderToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(196,171,220,0.1)', borderRadius: 12, padding: 16, marginTop: 24, borderWidth: 1, borderColor: 'rgba(196,171,220,0.3)' },
   reminderToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
