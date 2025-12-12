@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'space-evenly', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 30 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   logoContainer: { alignItems: 'center' },
-  logo: { width: 150, height: 150, marginBottom: -25 },
+  logo: { width: 150, height: 150, marginBottom: -20 },
   appTitle: { fontSize: 28, color: '#FFFFFF', fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#C4ABDC', fontFamily: 'Poppins_400Regular', textAlign: 'center', marginBottom: 16 },
   formContainer: { width: '100%', maxWidth: 400 },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   dividerText: { marginHorizontal: 16, color: '#CBBFE5', fontSize: 14, fontFamily: 'Poppins_400Regular' },
   signupButton: { width: '100%', paddingVertical: 14, borderRadius: 80, borderWidth: 2, borderColor: '#BBA0E8', backgroundColor: 'transparent', alignItems: 'center' },
   signupButtonText: { color: '#BBA0E8', fontSize: 16, fontFamily: 'Poppins_600SemiBold' },
-  footer: { marginTop: 12, paddingHorizontal: 20 },
+  footer: { marginTop: 20, paddingHorizontal: 20 },
   footerText: { fontSize: 13, color: '#CBBFE5', textAlign: 'center', fontFamily: 'Poppins_400Regular', lineHeight: 18 },
   footerLink: { color: '#BBA0E8', fontFamily: 'Poppins_600SemiBold', textDecorationLine: 'underline' },
 });
