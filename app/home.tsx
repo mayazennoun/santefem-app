@@ -114,7 +114,7 @@ export default function Home() {
               </View>
             </View>
 
-            {/* Card bébé avec image */}
+            
             <TouchableOpacity style={styles.babyCard} onPress={() => router.push('/BabyDevelopment')} activeOpacity={0.8}>
               <View style={styles.babyCardContent}>
                 <View style={styles.babyCardLeft}>

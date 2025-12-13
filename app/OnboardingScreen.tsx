@@ -26,7 +26,7 @@ export default function OnboardingScreen() {
 
   const calculateTrimester = (week: number) => (week <= 13 ? 1 : week <= 27 ? 2 : 3);
 
-  // Tableau de poids corrigé → cohérent médicalement
+  
   const babyWeights: { [key: number]: number } = {
     8: 0.01,
     10: 0.04,
@@ -50,10 +50,10 @@ export default function OnboardingScreen() {
   const calculateBabyWeight = (week: number) => {
     const weeks = Object.keys(babyWeights).map(Number).sort((a, b) => a - b);
 
-    // Si semaine est avant la 1ʳᵉ valeur connue
+    
     if (week <= weeks[0]) return babyWeights[weeks[0]];
 
-    // Interpolation
+    
     for (let i = 0; i < weeks.length - 1; i++) {
       if (week >= weeks[i] && week <= weeks[i + 1]) {
         const w1 = weeks[i];
@@ -64,7 +64,7 @@ export default function OnboardingScreen() {
       }
     }
 
-    // Si semaine dépasse 40
+    
     return babyWeights[weeks[weeks.length - 1]];
   };
 

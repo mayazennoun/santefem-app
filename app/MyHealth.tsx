@@ -40,7 +40,7 @@ export default function MyHealth() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<'symptom' | 'contraction' | 'mood' | 'pressure'>('symptom');
   
-  // Form states
+
   const [symptomType, setSymptomType] = useState('');
   const [intensity, setIntensity] = useState(3);
   const [duration, setDuration] = useState('');

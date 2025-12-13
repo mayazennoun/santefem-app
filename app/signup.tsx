@@ -1,4 +1,3 @@
-// signup.tsx (CORRIGÉ ET OPTIMISÉ)
 import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, Poppins_800ExtraBold, useFonts } from '@expo-google-fonts/poppins';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,7 +51,7 @@ export default function Signup() {
     }
   }, [fontsLoaded]);
 
-  // NOUVEAU: Fonctions de mise à jour de l'état optimisées avec useCallback
+  
   const handleFullNameChange = useCallback((text: string) => setFullName(text), []);
   const handleEmailChange = useCallback((text: string) => setEmail(text), []);
   const handlePasswordChange = useCallback((text: string) => setPassword(text), []);
@@ -119,7 +118,7 @@ export default function Signup() {
           </Animated.View>
 
           <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-            {/* Champ Nom complet */}
+            
             <View style={inputStyle('name')}>
               <MaterialIcons name="person" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
@@ -128,13 +127,13 @@ export default function Signup() {
                 placeholderTextColor="#CBBFE5"
                 autoCapitalize="words"
                 value={fullName}
-                onChangeText={handleFullNameChange} // <-- MODIFICATION CLÉ
+                onChangeText={handleFullNameChange} 
                 onFocus={() => handleFocus('name')}
                 onBlur={handleBlur}
               />
             </View>
 
-            {/* Champ E-mail */}
+            
             <View style={inputStyle('email')}>
               <MaterialIcons name="email" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
@@ -144,13 +143,13 @@ export default function Signup() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
-                onChangeText={handleEmailChange} // <-- MODIFICATION CLÉ
+                onChangeText={handleEmailChange} 
                 onFocus={() => handleFocus('email')}
                 onBlur={handleBlur}
               />
             </View>
 
-            {/* Champ Mot de passe */}
+            
             <View style={inputStyle('password')}>
               <MaterialIcons name="lock" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
@@ -159,7 +158,7 @@ export default function Signup() {
                 placeholderTextColor="#CBBFE5"
                 secureTextEntry={!showPassword}
                 value={password}
-                onChangeText={handlePasswordChange} // <-- MODIFICATION CLÉ
+                onChangeText={handlePasswordChange} 
                 onFocus={() => handleFocus('password')}
                 onBlur={handleBlur}
               />
@@ -169,7 +168,7 @@ export default function Signup() {
             </View>
             <Text style={styles.passwordNote}>Minimum 8 caractères</Text>
 
-            {/* Champ Confirmer le mot de passe */}
+            
             <View style={inputStyle('confirm')}>
               <MaterialIcons name="lock" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
@@ -178,7 +177,7 @@ export default function Signup() {
                 placeholderTextColor="#CBBFE5"
                 secureTextEntry={!showConfirm}
                 value={confirmPassword}
-                onChangeText={handleConfirmPasswordChange} // <-- MODIFICATION CLÉ
+                onChangeText={handleConfirmPasswordChange} 
                 onFocus={() => handleFocus('confirm')}
                 onBlur={handleBlur}
               />

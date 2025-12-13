@@ -50,8 +50,6 @@ export default function Login() {
     }
   }, [fontsLoaded]);
 
-  // NOUVEAU: Fonctions de mise à jour de l'état optimisées avec useCallback
-  // Cela garantit que la mise à jour de l'état est rapide et n'affecte pas le focus du clavier.
   const handleEmailChange = useCallback((text: string) => {
     setEmail(text);
   }, []);
@@ -119,13 +117,13 @@ export default function Login() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={email}
-                onChangeText={handleEmailChange} // <-- MODIFICATION CLÉ
+                onChangeText={handleEmailChange} 
                 onFocus={handleEmailFocus}
                 onBlur={handleBlur}
               />
             </View>
 
-            {/* Champ Mot de passe */}
+            
             <View style={passwordInputStyle}>
               <MaterialIcons name="lock" size={22} color="#C4ABDC" style={{ marginRight: 10 }} />
               <TextInput
@@ -136,7 +134,7 @@ export default function Login() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={password}
-                onChangeText={handlePasswordChange} // <-- MODIFICATION CLÉ
+                onChangeText={handlePasswordChange} 
                 onFocus={handlePasswordFocus}
                 onBlur={handleBlur}
               />

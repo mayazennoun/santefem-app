@@ -70,7 +70,7 @@ export default function Journal() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Récupérer la semaine actuelle
+    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -78,7 +78,7 @@ export default function Journal() {
       }
     });
 
-    // Récupérer les entrées du journal
+    
     const q = query(
       collection(db, 'users', auth.currentUser.uid, 'journal_entries'),
       orderBy('createdAt', 'desc')

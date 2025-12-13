@@ -84,7 +84,6 @@ export default function Community() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Récupérer les infos utilisateur
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -94,7 +93,6 @@ export default function Community() {
       }
     });
 
-    // Récupérer les posts
     const q = query(
       collection(db, 'community_posts'),
       orderBy('createdAt', 'desc')
@@ -192,7 +190,6 @@ export default function Community() {
     setSelectedPost(post);
     setCommentsModalVisible(true);
 
-    // Récupérer les commentaires
     const commentsRef = collection(db, 'community_posts', post.id, 'comments');
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
 
@@ -457,7 +454,7 @@ export default function Community() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Modal de création de post */}
+      
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
@@ -554,7 +551,7 @@ export default function Community() {
           </View>
         </Modal>
 
-        {/* Modal des commentaires */}
+        
         <Modal visible={commentsModalVisible} transparent animationType="slide">
           <View style={styles.commentsModalOverlay}>
             <View style={styles.commentsModalContent}>

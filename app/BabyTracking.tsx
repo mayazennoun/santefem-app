@@ -64,7 +64,7 @@ export default function BabyTracking() {
   const [notes, setNotes] = useState('');
   const [ultrasound, setUltrasound] = useState(false);
 
-  // Form states for kicks
+  
   const [kickTime, setKickTime] = useState('');
   const [kickCount, setKickCount] = useState('');
   const [kickDuration, setKickDuration] = useState('');
@@ -75,7 +75,7 @@ export default function BabyTracking() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Récupérer les infos utilisateur
+    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -85,7 +85,7 @@ export default function BabyTracking() {
       }
     });
 
-    // Récupérer les mesures
+    
     const qMeasurements = query(
       collection(db, 'users', auth.currentUser.uid, 'baby_measurements'),
       orderBy('createdAt', 'desc')
@@ -101,7 +101,7 @@ export default function BabyTracking() {
       setMeasurements(data);
     });
 
-    // Récupérer les coups de pieds
+    
     const qKicks = query(
       collection(db, 'users', auth.currentUser.uid, 'kick_counts'),
       orderBy('createdAt', 'desc')
