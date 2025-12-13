@@ -176,11 +176,54 @@ export default function Calendar() {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'appointments'), appointmentData);
         Alert.alert('Succès', 'Rendez-vous ajouté');
       }
+      
+      // Mettre à jour le prochain RDV dans le profil utilisateur
+      await updateNextAppointment();
+      
       resetForm();
       setModalVisible(false);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de sauvegarder le rendez-vous');
     }
+  };
+
+  const updateNextAppointment = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      // Récupérer tous les RDV non complétés
+      const upcomingAppts = appointments.filter(a => !a.completed);
+      
+      if (upcomingAppts.length === 0) {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          nextAppointment: 'Aucun rendez-vous prévu'
+        });
+        return;
+      }
+      
+      // Trouver le prochain RDV (le plus proche dans le futur)
+      const sortedAppts = upcomingAppts.sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      const nextAppt = sortedAppts[0];
+      const nextApptText = `${nextAppt.title} - ${nextAppt.date} à ${nextAppt.time}`;
+      
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        nextAppointment: nextApptText
+      });
+    } catch (error) {
+      console.error('Erreur mise à jour nextAppointment:', error);
+    }
+  };
+
+  const parseDate = (dateStr: string) => {
+    // Format: JJ/MM/AAAA
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return new Date();
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
   };
 
   const handleDeleteAppointment = (id: string) => {
@@ -192,6 +235,8 @@ export default function Calendar() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'appointments', id));
+            // Mettre à jour le prochain RDV
+            setTimeout(() => updateNextAppointment(), 500);
           } catch (error) {
             Alert.alert('Erreur', 'Impossible de supprimer');
           }
@@ -206,6 +251,8 @@ export default function Calendar() {
       await updateDoc(doc(db, 'users', auth.currentUser.uid, 'appointments', id), {
         completed: !currentStatus,
       });
+      // Mettre à jour le prochain RDV
+      setTimeout(() => updateNextAppointment(), 500);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de mettre à jour');
     }
