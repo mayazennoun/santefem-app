@@ -177,7 +177,7 @@ export default function Calendar() {
         Alert.alert('Succès', 'Rendez-vous ajouté');
       }
       
-      // Mettre à jour le prochain RDV dans le profil utilisateur
+      
       await updateNextAppointment();
       
       resetForm();
