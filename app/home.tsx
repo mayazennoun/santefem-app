@@ -13,7 +13,7 @@ interface Feature {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
-  route: "/BabyTracking" | "/MyHealth" | "/Appointments" | "/Activities" | "/Journal" | "/Community";
+  route: "/BabyTracking" | "/MyHealth" | "/Appointments" | "/Activities" | "/Journal" | "/Community" | "/WeightTracking" | "/ShoppingList";
 }
 
 interface QuickStat {
@@ -57,6 +57,8 @@ export default function Home() {
     { icon: "heart-outline", title: "Ma Santé", subtitle: "Symptômes & bien-être", route: "/MyHealth" },
     { icon: "calendar-outline", title: "Rendez-vous", subtitle: "Consultations médicales", route: "/Appointments" },
     { icon: "fitness-outline", title: "Activités", subtitle: "Exercices & nutrition", route: "/Activities" },
+    { icon: "scale-outline", title: "Mon Poids", subtitle: "Suivi & évolution", route: "/WeightTracking" },
+    { icon: "cart-outline", title: "Mes Courses", subtitle: "Liste de shopping", route: "/ShoppingList" },
     { icon: "book-outline", title: "Journal", subtitle: "Souvenirs & notes", route: "/Journal" },
     { icon: "chatbubbles-outline", title: "Communauté", subtitle: "Partage & conseils", route: "/Community" }
   ];
@@ -83,9 +85,8 @@ export default function Home() {
                   <Ionicons name="notifications-outline" size={22} color="#C4ABDC" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/Profile')}>
-  <Ionicons name="person-outline" size={22} color="#C4ABDC" />
-</TouchableOpacity>
-
+                  <Ionicons name="person-outline" size={22} color="#C4ABDC" />
+                </TouchableOpacity>
               </View>
             </View>
 

@@ -2,7 +2,7 @@ import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } fr
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -56,10 +56,79 @@ export default function Calendar() {
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
 
+  const parseDate = (dateStr: string) => {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return new Date();
+    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+  };
+
+  const updateNextAppointment = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      // Récupérer les rendez-vous directement depuis Firestore
+      const q = query(
+        collection(db, 'users', auth.currentUser.uid, 'appointments'),
+        orderBy('date', 'asc')
+      );
+      
+      const snapshot = await getDocs(q);
+      const allAppointments = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Appointment[];
+      
+      // Filtrer les rendez-vous non complétés
+      const upcomingAppts = allAppointments.filter(a => !a.completed);
+      
+      if (upcomingAppts.length === 0) {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          nextAppointment: 'Aucun rendez-vous prévu'
+        });
+        return;
+      }
+      
+      // Trouver le prochain rendez-vous (celui avec la date la plus proche)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const futureAppts = upcomingAppts.filter(a => {
+        const apptDate = parseDate(a.date);
+        apptDate.setHours(0, 0, 0, 0);
+        return apptDate >= today;
+      });
+      
+      // Si aucun rendez-vous futur
+      if (futureAppts.length === 0) {
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          nextAppointment: 'Aucun rendez-vous prévu'
+        });
+        return;
+      }
+      
+      // Trier par date
+      const sortedAppts = futureAppts.sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      const nextAppt = sortedAppts[0];
+      const nextApptText = `${nextAppt.title} - ${nextAppt.date} à ${nextAppt.time}`;
+      
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        nextAppointment: nextApptText
+      });
+      
+      console.log('✅ Prochain RDV mis à jour:', nextApptText);
+    } catch (error) {
+      console.error('❌ Erreur mise à jour nextAppointment:', error);
+    }
+  };
+
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -86,6 +155,9 @@ export default function Calendar() {
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as Appointment[];
       setAppointments(data);
+      
+      // Mettre à jour le prochain RDV après chaque changement
+      updateNextAppointment();
     });
 
     return () => {
@@ -177,53 +249,14 @@ export default function Calendar() {
         Alert.alert('Succès', 'Rendez-vous ajouté');
       }
       
-      
-      await updateNextAppointment();
-      
       resetForm();
       setModalVisible(false);
+      
+      // Mettre à jour le prochain RDV
+      setTimeout(() => updateNextAppointment(), 500);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de sauvegarder le rendez-vous');
     }
-  };
-
-  const updateNextAppointment = async () => {
-    if (!auth.currentUser) return;
-    
-    try {
-      
-      const upcomingAppts = appointments.filter(a => !a.completed);
-      
-      if (upcomingAppts.length === 0) {
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          nextAppointment: 'Aucun rendez-vous prévu'
-        });
-        return;
-      }
-      
-      
-      const sortedAppts = upcomingAppts.sort((a, b) => {
-        const dateA = parseDate(a.date);
-        const dateB = parseDate(b.date);
-        return dateA.getTime() - dateB.getTime();
-      });
-      
-      const nextAppt = sortedAppts[0];
-      const nextApptText = `${nextAppt.title} - ${nextAppt.date} à ${nextAppt.time}`;
-      
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-        nextAppointment: nextApptText
-      });
-    } catch (error) {
-      console.error('Erreur mise à jour nextAppointment:', error);
-    }
-  };
-
-  const parseDate = (dateStr: string) => {
-    
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return new Date();
-    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
   };
 
   const handleDeleteAppointment = (id: string) => {
@@ -251,7 +284,6 @@ export default function Calendar() {
       await updateDoc(doc(db, 'users', auth.currentUser.uid, 'appointments', id), {
         completed: !currentStatus,
       });
-      
       setTimeout(() => updateNextAppointment(), 500);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de mettre à jour');
