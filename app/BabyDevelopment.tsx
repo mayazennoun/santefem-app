@@ -35,7 +35,7 @@ const weeklyData: { [key: number]: WeekData } = {
     weight: 0.001,
     description: "Votre bébé est de la taille d'un haricot",
     developments: ["Formation des doigts et orteils", "Le cœur bat à 150 battements/min", "Les organes principaux se développent"],
-    motherSymptoms: ["Nausées matinales", "Fatigue intense", "Sensibilité des seins"],
+    motherSymptoms: ["Nausées matinales", "Fatigue intense", "Changements corporels liés aux hormones"],
     tips: ["Repos fréquent", "Hydratation importante", "Éviter les odeurs fortes"]
   },
   12: {
@@ -63,7 +63,7 @@ const weeklyData: { [key: number]: WeekData } = {
     description: "Votre bébé est de la taille d'une banane",
     developments: ["Vernix protège la peau", "Cheveux et sourcils poussent", "Cycles de sommeil réguliers"],
     motherSymptoms: ["Mouvements du bébé ressentis", "Ligne brune sur le ventre", "Augmentation de l'appétit"],
-    tips: ["Échographie morphologique", "Position de sommeil sur le côté", "Crème anti-vergetures"]
+    tips: ["Échographie morphologique", "Position de sommeil sur le côté", "Hydratation de la peau"]
   },
   24: {
     week: 24,
@@ -89,7 +89,7 @@ const weeklyData: { [key: number]: WeekData } = {
     weight: 1.7,
     description: "Votre bébé est de la taille d'un chou",
     developments: ["Prend du poids rapidement", "Se positionne tête en bas", "Système immunitaire actif"],
-    motherSymptoms: ["Fatigue accrue", "Envies fréquentes d'uriner", "Contractions plus fréquentes"],
+    motherSymptoms: ["Fatigue accrue", "Douleurs dans le bas du dos et le bassin", "Contractions plus fréquentes"],
     tips: ["Préparez la valise", "Cours de préparation", "Repos maximal"]
   },
   36: {
@@ -107,7 +107,7 @@ const weeklyData: { [key: number]: WeekData } = {
     weight: 3.4,
     description: "Votre bébé est prêt à naître",
     developments: ["Totalement développé", "Prêt pour la vie extra-utérine", "Méconium dans l'intestin"],
-    motherSymptoms: ["Contractions régulières", "Perte du bouchon muqueux", "Rupture de la poche possible"],
+    motherSymptoms: ["Contractions régulières", "Signes annonciateurs de l'accouchement", "Rupture de la poche possible"],
     tips: ["Restez calme", "Comptez les contractions", "Direction maternité si besoin"]
   }
 };

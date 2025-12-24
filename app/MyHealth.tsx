@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
@@ -36,11 +37,11 @@ interface HealthRecord {
 
 export default function MyHealth() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<'symptom' | 'contraction' | 'mood' | 'pressure'>('symptom');
   
-
   const [symptomType, setSymptomType] = useState('');
   const [intensity, setIntensity] = useState(3);
   const [duration, setDuration] = useState('');
@@ -85,25 +86,25 @@ export default function MyHealth() {
 
     if (selectedType === 'symptom') {
       if (!symptomType.trim()) {
-        Alert.alert('Erreur', 'Veuillez saisir un symptôme');
+        Alert.alert(t('common.error'), t('myHealth.enterSymptom'));
         return;
       }
       recordData = { ...recordData, symptomType, intensity, notes };
     } else if (selectedType === 'contraction') {
       if (!duration || !frequency) {
-        Alert.alert('Erreur', 'Veuillez remplir la durée et la fréquence');
+        Alert.alert(t('common.error'), t('myHealth.enterDurationFrequency'));
         return;
       }
       recordData = { ...recordData, duration: parseInt(duration), frequency, notes };
     } else if (selectedType === 'mood') {
       if (!moodType.trim()) {
-        Alert.alert('Erreur', 'Veuillez saisir votre humeur');
+        Alert.alert(t('common.error'), t('myHealth.enterMood'));
         return;
       }
       recordData = { ...recordData, moodType, notes };
     } else if (selectedType === 'pressure') {
       if (!systolic || !diastolic) {
-        Alert.alert('Erreur', 'Veuillez saisir les deux valeurs de tension');
+        Alert.alert(t('common.error'), t('myHealth.enterPressure'));
         return;
       }
       recordData = { ...recordData, systolic: parseInt(systolic), diastolic: parseInt(diastolic), notes };
@@ -113,9 +114,9 @@ export default function MyHealth() {
       await addDoc(collection(db, 'users', auth.currentUser.uid, 'health_records'), recordData);
       resetForm();
       setModalVisible(false);
-      Alert.alert('Succès', 'Enregistrement ajouté');
+      Alert.alert(t('common.success'), t('myHealth.recordAdded'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter l\'enregistrement');
+      Alert.alert(t('common.error'), t('myHealth.cannotAdd'));
     }
   };
 
@@ -151,7 +152,18 @@ export default function MyHealth() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const locale = i18n.language === 'ar' ? 'ar-DZ' : 'fr-FR';
+    return date.toLocaleDateString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getModalTitle = () => {
+    switch (selectedType) {
+      case 'symptom': return t('myHealth.addSymptom');
+      case 'contraction': return t('myHealth.addContraction');
+      case 'mood': return t('myHealth.addMood');
+      case 'pressure': return t('myHealth.addPressure');
+      default: return '';
+    }
   };
 
   if (!fontsLoaded) return null;
@@ -164,7 +176,7 @@ export default function MyHealth() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ma Santé</Text>
+          <Text style={styles.headerTitle}>{t('myHealth.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -172,10 +184,10 @@ export default function MyHealth() {
           <View style={styles.content}>
             <View style={styles.quickActionsGrid}>
               {[
-                { type: 'symptom' as const, icon: 'medical-outline', label: 'Symptôme', color: '#FFB5E8' },
-                { type: 'contraction' as const, icon: 'pulse-outline', label: 'Contraction', color: '#C4ABDC' },
-                { type: 'mood' as const, icon: 'happy-outline', label: 'Humeur', color: '#9B88D3' },
-                { type: 'pressure' as const, icon: 'heart-outline', label: 'Tension', color: '#FF9AA2' },
+                { type: 'symptom' as const, icon: 'medical-outline', labelKey: 'myHealth.symptom', color: '#FFB5E8' },
+                { type: 'contraction' as const, icon: 'pulse-outline', labelKey: 'myHealth.contraction', color: '#C4ABDC' },
+                { type: 'mood' as const, icon: 'happy-outline', labelKey: 'myHealth.mood', color: '#9B88D3' },
+                { type: 'pressure' as const, icon: 'heart-outline', labelKey: 'myHealth.pressure', color: '#FF9AA2' },
               ].map((action, idx) => (
                 <TouchableOpacity
                   key={idx}
@@ -189,21 +201,21 @@ export default function MyHealth() {
                   <View style={[styles.actionIcon, { backgroundColor: action.color + '33' }]}>
                     <Ionicons name={action.icon as any} size={28} color={action.color} />
                   </View>
-                  <Text style={styles.actionLabel}>{action.label}</Text>
+                  <Text style={styles.actionLabel}>{t(action.labelKey)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Historique</Text>
+              <Text style={styles.sectionTitle}>{t('myHealth.history')}</Text>
               <Text style={styles.sectionCount}>{records.length}</Text>
             </View>
 
             {records.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="document-text-outline" size={60} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucun enregistrement</Text>
-                <Text style={styles.emptySubtext}>Ajoutez votre premier suivi</Text>
+                <Text style={styles.emptyText}>{t('myHealth.noRecords')}</Text>
+                <Text style={styles.emptySubtext}>{t('myHealth.addFirstRecord')}</Text>
               </View>
             ) : (
               records.map(record => (
@@ -215,7 +227,7 @@ export default function MyHealth() {
                     <View style={styles.recordHeader}>
                       <Text style={styles.recordType}>
                         {record.type === 'symptom' && record.symptomType}
-                        {record.type === 'contraction' && 'Contraction'}
+                        {record.type === 'contraction' && t('myHealth.contraction')}
                         {record.type === 'mood' && record.moodType}
                         {record.type === 'pressure' && `${record.systolic}/${record.diastolic} mmHg`}
                       </Text>
@@ -234,7 +246,7 @@ export default function MyHealth() {
                       </View>
                     )}
                     {record.duration && (
-                      <Text style={styles.recordDetail}>Durée: {record.duration} min - {record.frequency}</Text>
+                      <Text style={styles.recordDetail}>{t('myHealth.duration')}: {record.duration} min - {record.frequency}</Text>
                     )}
                     {record.notes && <Text style={styles.recordNotes}>{record.notes}</Text>}
                   </View>
@@ -248,11 +260,7 @@ export default function MyHealth() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  Ajouter {selectedType === 'symptom' ? 'un symptôme' : 
-                           selectedType === 'contraction' ? 'une contraction' : 
-                           selectedType === 'mood' ? 'votre humeur' : 'votre tension'}
-                </Text>
+                <Text style={styles.modalTitle}>{getModalTitle()}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
@@ -261,15 +269,15 @@ export default function MyHealth() {
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                 {selectedType === 'symptom' && (
                   <>
-                    <Text style={styles.inputLabel}>Type de symptôme</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.symptomType')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: Nausée, Fatigue, Douleur"
+                      placeholder={t('myHealth.exampleSymptom')}
                       placeholderTextColor="#9B88D3"
                       value={symptomType}
                       onChangeText={setSymptomType}
                     />
-                    <Text style={styles.inputLabel}>Intensité</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.intensity')}</Text>
                     <View style={styles.intensitySelector}>
                       {[1, 2, 3, 4, 5].map(level => (
                         <TouchableOpacity
@@ -288,19 +296,19 @@ export default function MyHealth() {
 
                 {selectedType === 'contraction' && (
                   <>
-                    <Text style={styles.inputLabel}>Durée (minutes)</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.duration')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 45"
+                      placeholder={t('myHealth.exampleDuration')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={duration}
                       onChangeText={setDuration}
                     />
-                    <Text style={styles.inputLabel}>Fréquence</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.frequency')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: Toutes les 10 minutes"
+                      placeholder={t('myHealth.exampleFrequency')}
                       placeholderTextColor="#9B88D3"
                       value={frequency}
                       onChangeText={setFrequency}
@@ -310,10 +318,10 @@ export default function MyHealth() {
 
                 {selectedType === 'mood' && (
                   <>
-                    <Text style={styles.inputLabel}>Votre humeur</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.yourMood')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: Heureuse, Anxieuse, Fatiguée"
+                      placeholder={t('myHealth.exampleMood')}
                       placeholderTextColor="#9B88D3"
                       value={moodType}
                       onChangeText={setMoodType}
@@ -323,19 +331,19 @@ export default function MyHealth() {
 
                 {selectedType === 'pressure' && (
                   <>
-                    <Text style={styles.inputLabel}>Tension systolique</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.systolic')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 120"
+                      placeholder={t('myHealth.exampleSystolic')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={systolic}
                       onChangeText={setSystolic}
                     />
-                    <Text style={styles.inputLabel}>Tension diastolique</Text>
+                    <Text style={styles.inputLabel}>{t('myHealth.diastolic')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 80"
+                      placeholder={t('myHealth.exampleDiastolic')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={diastolic}
@@ -344,10 +352,10 @@ export default function MyHealth() {
                   </>
                 )}
 
-                <Text style={styles.inputLabel}>Notes (optionnel)</Text>
+                <Text style={styles.inputLabel}>{t('myHealth.notes')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Détails supplémentaires..."
+                  placeholder={t('myHealth.additionalDetails')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={4}
@@ -362,7 +370,7 @@ export default function MyHealth() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>

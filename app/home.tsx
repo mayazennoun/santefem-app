@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dimensions, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth, db } from './firebaseConfig';
 
@@ -11,19 +12,20 @@ const { width } = Dimensions.get('window');
 
 interface Feature {
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
+  titleKey: string;
+  subtitleKey: string;
   route: "/BabyTracking" | "/MyHealth" | "/Appointments" | "/Activities" | "/Journal" | "/Community" | "/WeightTracking" | "/ShoppingList";
 }
 
 interface QuickStat {
-  label: string;
+  labelKey: string;
   value: number | string;
   unit: string;
 }
 
 export default function Home() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
 
   const [weekNumber, setWeekNumber] = useState<number>(0);
   const [babyWeight, setBabyWeight] = useState<number>(0);
@@ -41,32 +43,33 @@ export default function Home() {
         setUserName(`${data.nom} ${data.prenom}`);
         setWeekNumber(Number(data.semaineGrossesse) || 0);
         setBabyWeight(Number(data.poidsBebe) || 0);
-        setNextAppointment(data.nextAppointment || "Non défini");
+        setNextAppointment(data.nextAppointment || t('home.noAppointment'));
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [t]);
 
   if (!fontsLoaded) return null;
 
   const progress = (weekNumber / 40) * 100;
+  const trimesterNum = Math.ceil(weekNumber / 13);
 
   const features: Feature[] = [
-    { icon: "body-outline", title: "Suivi Bébé", subtitle: "Croissance & développement", route: "/BabyTracking" },
-    { icon: "heart-outline", title: "Ma Santé", subtitle: "Symptômes & bien-être", route: "/MyHealth" },
-    { icon: "calendar-outline", title: "Rendez-vous", subtitle: "Consultations médicales", route: "/Appointments" },
-    { icon: "fitness-outline", title: "Activités", subtitle: "Exercices & nutrition", route: "/Activities" },
-    { icon: "scale-outline", title: "Mon Poids", subtitle: "Suivi & évolution", route: "/WeightTracking" },
-    { icon: "cart-outline", title: "Mes Courses", subtitle: "Liste de shopping", route: "/ShoppingList" },
-    { icon: "book-outline", title: "Journal", subtitle: "Souvenirs & notes", route: "/Journal" },
-    { icon: "chatbubbles-outline", title: "Communauté", subtitle: "Partage & conseils", route: "/Community" }
+    { icon: "body-outline", titleKey: "home.babyTracking", subtitleKey: "home.babyTrackingSubtitle", route: "/BabyTracking" },
+    { icon: "heart-outline", titleKey: "home.myHealth", subtitleKey: "home.myHealthSubtitle", route: "/MyHealth" },
+    { icon: "calendar-outline", titleKey: "home.appointments", subtitleKey: "home.appointmentsSubtitle", route: "/Appointments" },
+    { icon: "fitness-outline", titleKey: "home.activities", subtitleKey: "home.activitiesSubtitle", route: "/Activities" },
+    { icon: "scale-outline", titleKey: "home.weightTracking", subtitleKey: "home.weightTrackingSubtitle", route: "/WeightTracking" },
+    { icon: "cart-outline", titleKey: "home.shoppingList", subtitleKey: "home.shoppingListSubtitle", route: "/ShoppingList" },
+    { icon: "book-outline", titleKey: "home.journal", subtitleKey: "home.journalSubtitle", route: "/Journal" },
+    { icon: "chatbubbles-outline", titleKey: "home.community", subtitleKey: "home.communitySubtitle", route: "/Community" }
   ];
 
   const quickStats: QuickStat[] = [
-    { label: "Semaine", value: weekNumber, unit: "/40" },
-    { label: "Poids bébé", value: babyWeight.toFixed(1), unit: "kg" },
-    { label: "Trimestre", value: Math.ceil(weekNumber / 13), unit: "" }
+    { labelKey: "home.weekLabel", value: weekNumber, unit: "/40" },
+    { labelKey: "home.babyWeight", value: babyWeight.toFixed(1), unit: "kg" },
+    { labelKey: "home.trimester", value: trimesterNum, unit: "" }
   ];
 
   return (
@@ -77,7 +80,7 @@ export default function Home() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <View>
-                <Text style={styles.greeting}>Bonjour,</Text>
+                <Text style={styles.greeting}>{t('home.greeting')}</Text>
                 <Text style={styles.userName}>{userName} ✨</Text>
               </View>
               <View style={styles.headerIcons}>
@@ -93,8 +96,8 @@ export default function Home() {
             <View style={styles.progressCard}>
               <View style={styles.progressHeader}>
                 <View>
-                  <Text style={styles.weekText}>Semaine {weekNumber}</Text>
-                  <Text style={styles.trimesterText}>{Math.ceil(weekNumber/13)}ème trimestre</Text>
+                  <Text style={styles.weekText}>{t('home.week')} {weekNumber}</Text>
+                  <Text style={styles.trimesterText}>{trimesterNum}{i18n.language === 'ar' ? ' ' : 'ème'} {t('home.trimester')}</Text>
                 </View>
                 <View style={styles.percentageBadge}>
                   <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
@@ -109,21 +112,23 @@ export default function Home() {
                 {quickStats.map((stat, idx) => (
                   <View key={idx} style={styles.statItem}>
                     <Text style={styles.statValue}>{stat.value}{stat.unit}</Text>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
+                    <Text style={styles.statLabel}>{t(stat.labelKey)}</Text>
                   </View>
                 ))}
               </View>
             </View>
 
-            
             <TouchableOpacity style={styles.babyCard} onPress={() => router.push('/BabyDevelopment')} activeOpacity={0.8}>
               <View style={styles.babyCardContent}>
                 <View style={styles.babyCardLeft}>
                   <View style={styles.babyIcon}>
                     <Ionicons name="body-outline" size={24} color="#FFFFFF"/>
                   </View>
-                  <Text style={styles.babyCardTitle}>Votre bébé cette semaine</Text>
-                  <Text style={styles.babyCardSubtitle}>La taille d'une papaye 🥭{'\n'}Peut entendre votre voix</Text>
+                  <Text style={styles.babyCardTitle}>{t('home.babyThisWeek')}</Text>
+                  <Text style={styles.babyCardSubtitle}>
+                    {t('home.babySize')}{'\n'}
+                    {t('home.babyHearing')}
+                  </Text>
                 </View>
                 <View style={styles.babyImageContainer}>
                   <Image source={require('../assets/images/baby.png')} style={styles.babyImage} />
@@ -138,14 +143,14 @@ export default function Home() {
                   <Ionicons name="calendar-outline" size={22} color="#1B0E20"/>
                 </View>
                 <View>
-                  <Text style={styles.appointmentLabel}>Prochain rendez-vous</Text>
+                  <Text style={styles.appointmentLabel}>{t('home.nextAppointment')}</Text>
                   <Text style={styles.appointmentDate}>{nextAppointment}</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={22} color="#1B0E20"/>
             </TouchableOpacity>
 
-            <Text style={styles.featuresTitle}>Vos outils</Text>
+            <Text style={styles.featuresTitle}>{t('home.yourTools')}</Text>
           </View>
 
           <View style={styles.featuresGrid}>
@@ -154,8 +159,8 @@ export default function Home() {
                 <View style={styles.featureIconContainer}>
                   <Ionicons name={feature.icon as any} size={26} color="#C4ABDC"/>
                 </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureSubtitle}>{feature.subtitle}</Text>
+                <Text style={styles.featureTitle}>{t(feature.titleKey)}</Text>
+                <Text style={styles.featureSubtitle}>{t(feature.subtitleKey)}</Text>
               </TouchableOpacity>
             ))}
           </View>

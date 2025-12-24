@@ -66,7 +66,7 @@ export default function Calendar() {
     if (!auth.currentUser) return;
     
     try {
-      // Récupérer les rendez-vous directement depuis Firestore
+
       const q = query(
         collection(db, 'users', auth.currentUser.uid, 'appointments'),
         orderBy('date', 'asc')
@@ -78,7 +78,7 @@ export default function Calendar() {
         ...doc.data(),
       })) as Appointment[];
       
-      // Filtrer les rendez-vous non complétés
+      
       const upcomingAppts = allAppointments.filter(a => !a.completed);
       
       if (upcomingAppts.length === 0) {
@@ -88,7 +88,7 @@ export default function Calendar() {
         return;
       }
       
-      // Trouver le prochain rendez-vous (celui avec la date la plus proche)
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -98,7 +98,7 @@ export default function Calendar() {
         return apptDate >= today;
       });
       
-      // Si aucun rendez-vous futur
+      
       if (futureAppts.length === 0) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), {
           nextAppointment: 'Aucun rendez-vous prévu'
@@ -106,7 +106,7 @@ export default function Calendar() {
         return;
       }
       
-      // Trier par date
+      
       const sortedAppts = futureAppts.sort((a, b) => {
         const dateA = parseDate(a.date);
         const dateB = parseDate(b.date);
@@ -156,7 +156,7 @@ export default function Calendar() {
       })) as Appointment[];
       setAppointments(data);
       
-      // Mettre à jour le prochain RDV après chaque changement
+      
       updateNextAppointment();
     });
 

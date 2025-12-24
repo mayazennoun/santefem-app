@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
@@ -32,23 +33,9 @@ interface JournalEntry {
   createdAt: Date;
 }
 
-const moods = [
-  { value: 'heureuse', label: 'Heureuse', emoji: '😊', color: '#FFB5E8' },
-  { value: 'fatiguée', label: 'Fatiguée', emoji: '😴', color: '#C4ABDC' },
-  { value: 'anxieuse', label: 'Anxieuse', emoji: '😰', color: '#9B88D3' },
-  { value: 'excitée', label: 'Excitée', emoji: '🤩', color: '#BBA0E8' },
-  { value: 'mélancolique', label: 'Mélancolique', emoji: '🥺', color: '#876BB8' },
-];
-
-const categories = [
-  { value: 'souvenir', label: 'Souvenir', icon: 'heart-outline' },
-  { value: 'réflexion', label: 'Réflexion', icon: 'bulb-outline' },
-  { value: 'milestone', label: 'Étape importante', icon: 'star-outline' },
-  { value: 'rêve', label: 'Rêve', icon: 'moon-outline' },
-];
-
 export default function Journal() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -67,10 +54,25 @@ export default function Journal() {
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
 
+  
+  const moods = [
+    { value: 'happy', emoji: '😊', color: '#FFB5E8', labelKey: 'journal.happy' },
+    { value: 'tired', emoji: '😴', color: '#C4ABDC', labelKey: 'journal.tired' },
+    { value: 'anxious', emoji: '😰', color: '#9B88D3', labelKey: 'journal.anxious' },
+    { value: 'excited', emoji: '🤩', color: '#BBA0E8', labelKey: 'journal.excited' },
+    { value: 'melancholic', emoji: '🥺', color: '#876BB8', labelKey: 'journal.melancholic' },
+  ];
+
+  const categories = [
+    { value: 'memory', icon: 'heart-outline', labelKey: 'journal.memory' },
+    { value: 'reflection', icon: 'bulb-outline', labelKey: 'journal.reflection' },
+    { value: 'milestone', icon: 'star-outline', labelKey: 'journal.milestone' },
+    { value: 'dream', icon: 'moon-outline', labelKey: 'journal.dream' },
+  ];
+
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -78,7 +80,6 @@ export default function Journal() {
       }
     });
 
-    
     const q = query(
       collection(db, 'users', auth.currentUser.uid, 'journal_entries'),
       orderBy('createdAt', 'desc')
@@ -103,7 +104,7 @@ export default function Journal() {
     if (!auth.currentUser) return;
 
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir le titre et le contenu');
+      Alert.alert(t('common.error'), t('journal.fillTitleContent'));
       return;
     }
 
@@ -121,15 +122,15 @@ export default function Journal() {
     try {
       if (editingId) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid, 'journal_entries', editingId), entryData);
-        Alert.alert('Succès', 'Entrée modifiée');
+        Alert.alert(t('common.success'), t('common.modified'));
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'journal_entries'), entryData);
-        Alert.alert('Succès', 'Entrée ajoutée à votre journal');
+        Alert.alert(t('common.success'), t('journal.entryAdded'));
       }
       resetForm();
       setModalVisible(false);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder l\'entrée');
+      Alert.alert(t('common.error'), t('common.cannotSave'));
     }
   };
 
@@ -140,22 +141,22 @@ export default function Journal() {
         favorite: !currentStatus,
       });
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre à jour');
+      Alert.alert(t('common.error'), t('common.cannotUpdate'));
     }
   };
 
   const handleDeleteEntry = (id: string) => {
-    Alert.alert('Confirmation', 'Supprimer cette entrée définitivement ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('journal.deleteEntry'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'journal_entries', id));
             setViewModalVisible(false);
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('common.cannotDelete'));
           }
         },
       },
@@ -193,14 +194,15 @@ export default function Journal() {
     setEditingId(null);
     setTitle('');
     setContent('');
-    setMood('heureuse');
-    setCategory('souvenir');
+    setMood('happy');
+    setCategory('memory');
     setTagInput('');
     setTags([]);
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', { 
+    const locale = i18n.language === 'ar' ? 'ar-DZ' : 'fr-FR';
+    return date.toLocaleDateString(locale, { 
       day: 'numeric', 
       month: 'long', 
       year: 'numeric',
@@ -222,6 +224,12 @@ export default function Journal() {
 
   const favoriteCount = entries.filter(e => e.favorite).length;
 
+  const getEmptyStateText = () => {
+    if (showFavoritesOnly) return t('journal.noFavorites');
+    if (filterCategory) return t('journal.noCategoryEntry');
+    return t('journal.startJournal');
+  };
+
   if (!fontsLoaded) return null;
 
   return (
@@ -232,7 +240,7 @@ export default function Journal() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mon Journal</Text>
+          <Text style={styles.headerTitle}>{t('journal.title')}</Text>
           <TouchableOpacity
             onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
             style={styles.favoriteFilterButton}
@@ -248,15 +256,15 @@ export default function Journal() {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{entries.length}</Text>
-            <Text style={styles.statLabel}>Entrées</Text>
+            <Text style={styles.statLabel}>{t('journal.entries')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{favoriteCount}</Text>
-            <Text style={styles.statLabel}>Favoris</Text>
+            <Text style={styles.statLabel}>{t('journal.favorites')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>S{currentWeek}</Text>
-            <Text style={styles.statLabel}>Actuelle</Text>
+            <Text style={styles.statLabel}>{t('journal.current')}</Text>
           </View>
         </View>
 
@@ -272,7 +280,7 @@ export default function Journal() {
             activeOpacity={0.7}
           >
             <Text style={[styles.filterChipText, !filterCategory && styles.filterChipTextActive]}>
-              Tout
+              {t('journal.all')}
             </Text>
           </TouchableOpacity>
           {categories.map(cat => (
@@ -288,7 +296,7 @@ export default function Journal() {
                 color={filterCategory === cat.value ? '#1B0E20' : '#C4ABDC'} 
               />
               <Text style={[styles.filterChipText, filterCategory === cat.value && styles.filterChipTextActive]}>
-                {cat.label}
+                {t(cat.labelKey)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -299,14 +307,8 @@ export default function Journal() {
             {filteredEntries.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="book-outline" size={60} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucune entrée</Text>
-                <Text style={styles.emptySubtext}>
-                  {showFavoritesOnly 
-                    ? 'Aucun favori pour le moment'
-                    : filterCategory 
-                    ? 'Aucune entrée dans cette catégorie'
-                    : 'Commencez votre journal de grossesse'}
-                </Text>
+                <Text style={styles.emptyText}>{t('journal.noEntry')}</Text>
+                <Text style={styles.emptySubtext}>{getEmptyStateText()}</Text>
               </View>
             ) : (
               filteredEntries.map(entry => {
@@ -327,8 +329,8 @@ export default function Journal() {
                         <View style={styles.entryHeaderText}>
                           <Text style={styles.entryTitle} numberOfLines={1}>{entry.title}</Text>
                           <View style={styles.entryMetaRow}>
-                            <Text style={styles.entryMood}>{moodData.emoji} {moodData.label}</Text>
-                            <Text style={styles.entryWeek}>• Semaine {entry.week}</Text>
+                            <Text style={styles.entryMood}>{moodData.emoji} {t(moodData.labelKey)}</Text>
+                            <Text style={styles.entryWeek}>• {t('home.week')} {entry.week}</Text>
                           </View>
                         </View>
                       </View>
@@ -389,28 +391,30 @@ export default function Journal() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Modal d'ajout/édition */}
+        
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editingId ? 'Modifier' : 'Nouvelle entrée'}</Text>
+                <Text style={styles.modalTitle}>
+                  {editingId ? t('common.edit') : t('journal.newEntry')}
+                </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Titre *</Text>
+                <Text style={styles.inputLabel}>{t('journal.entryTitle')} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: Premier coup de pied !"
+                  placeholder={t('journal.firstKick')}
                   placeholderTextColor="#9B88D3"
                   value={title}
                   onChangeText={setTitle}
                 />
 
-                <Text style={styles.inputLabel}>Comment vous sentez-vous ? *</Text>
+                <Text style={styles.inputLabel}>{t('journal.howDoYouFeel')} *</Text>
                 <View style={styles.moodSelector}>
                   {moods.map(m => (
                     <TouchableOpacity
@@ -421,13 +425,13 @@ export default function Journal() {
                     >
                       <Text style={styles.moodEmoji}>{m.emoji}</Text>
                       <Text style={[styles.moodLabel, mood === m.value && styles.moodLabelActive]}>
-                        {m.label}
+                        {t(m.labelKey)}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Catégorie *</Text>
+                <Text style={styles.inputLabel}>{t('journal.category')} *</Text>
                 <View style={styles.categorySelector}>
                   {categories.map(cat => (
                     <TouchableOpacity
@@ -442,16 +446,16 @@ export default function Journal() {
                         color={category === cat.value ? '#1B0E20' : '#C4ABDC'} 
                       />
                       <Text style={[styles.categoryButtonText, category === cat.value && styles.categoryButtonTextActive]}>
-                        {cat.label}
+                        {t(cat.labelKey)}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Votre histoire *</Text>
+                <Text style={styles.inputLabel}>{t('journal.yourStory')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Racontez votre journée, vos émotions, vos découvertes..."
+                  placeholder={t('journal.storyPlaceholder')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={8}
@@ -460,11 +464,11 @@ export default function Journal() {
                   textAlignVertical="top"
                 />
 
-                <Text style={styles.inputLabel}>Tags (optionnel)</Text>
+                <Text style={styles.inputLabel}>{t('journal.tags')}</Text>
                 <View style={styles.tagInputContainer}>
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
-                    placeholder="Ajouter un tag"
+                    placeholder={t('journal.addTag')}
                     placeholderTextColor="#9B88D3"
                     value={tagInput}
                     onChangeText={setTagInput}
@@ -495,7 +499,9 @@ export default function Journal() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>{editingId ? 'Modifier' : 'Enregistrer'}</Text>
+                    <Text style={styles.saveButtonText}>
+                      {editingId ? t('common.edit') : t('common.save')}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
@@ -534,7 +540,7 @@ export default function Journal() {
                           {getMoodData(selectedEntry.mood).emoji}
                         </Text>
                         <Text style={styles.viewModalMetaText}>
-                          {getMoodData(selectedEntry.mood).label}
+                          {t(getMoodData(selectedEntry.mood).labelKey)}
                         </Text>
                       </View>
                       <View style={styles.viewModalMetaItem}>
@@ -544,16 +550,16 @@ export default function Journal() {
                           color="#C4ABDC" 
                         />
                         <Text style={styles.viewModalMetaText}>
-                          {getCategoryData(selectedEntry.category).label}
+                          {t(getCategoryData(selectedEntry.category).labelKey)}
                         </Text>
                       </View>
                       <View style={styles.viewModalMetaItem}>
                         <Ionicons name="calendar-outline" size={18} color="#C4ABDC" />
-                        <Text style={styles.viewModalMetaText}>Semaine {selectedEntry.week}</Text>
+                        <Text style={styles.viewModalMetaText}>{t('home.week')} {selectedEntry.week}</Text>
                       </View>
                     </View>
 
-                    <Text style={styles.viewModalContent}>{selectedEntry.content}</Text>
+                    <Text style={styles.viewModalText}>{selectedEntry.content}</Text>
 
                     {selectedEntry.tags.length > 0 && (
                       <View style={styles.viewModalTags}>
@@ -573,14 +579,16 @@ export default function Journal() {
                         onPress={() => handleEditEntry(selectedEntry)}
                       >
                         <Ionicons name="create-outline" size={20} color="#C4ABDC" />
-                        <Text style={styles.viewModalActionText}>Modifier</Text>
+                        <Text style={styles.viewModalActionText}>{t('common.edit')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.viewModalActionButton, styles.deleteActionButton]}
                         onPress={() => handleDeleteEntry(selectedEntry.id)}
                       >
                         <Ionicons name="trash-outline" size={20} color="#FF9AA2" />
-                        <Text style={[styles.viewModalActionText, { color: '#FF9AA2' }]}>Supprimer</Text>
+                        <Text style={[styles.viewModalActionText, { color: '#FF9AA2' }]}>
+                          {t('common.delete')}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </ScrollView>

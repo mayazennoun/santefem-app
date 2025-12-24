@@ -5,8 +5,10 @@ import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  I18nManager,
   Modal,
   ScrollView,
   StatusBar,
@@ -17,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { saveLanguage } from '../i18n';
 import { auth, db } from './firebaseConfig';
 
 interface UserData {
@@ -33,14 +36,13 @@ interface UserData {
 
 export default function Profile() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   
-  
   const [notifications, setNotifications] = useState(true);
-  const [selectedLanguage, setSelectedLanguage] = useState('fr');
-
+  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
   
   const [editNom, setEditNom] = useState('');
   const [editPrenom, setEditPrenom] = useState('');
@@ -69,22 +71,20 @@ export default function Profile() {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      t('profile.logout'),
+      t('profile.logoutConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('profile.cancel'), style: 'cancel' },
         {
-          text: 'Déconnexion',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
             try {
               await signOut(auth);
-              
-            
               router.replace('/login');
             } catch (error) {
               console.error('Logout error:', error);
-              Alert.alert('Erreur', 'Impossible de se déconnecter');
+              Alert.alert(t('profile.error'), t('profile.cannotLogout'));
             }
           },
         },
@@ -106,7 +106,7 @@ export default function Profile() {
     if (!auth.currentUser) return;
 
     if (!editNom.trim() || !editPrenom.trim() || !editAge || !editPoids || !editTaille) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert(t('profile.error'), t('profile.fillAllFields'));
       return;
     }
 
@@ -119,20 +119,29 @@ export default function Profile() {
         taille: parseFloat(editTaille),
       });
       setEditModalVisible(false);
-      Alert.alert('Succès', 'Profil mis à jour');
+      Alert.alert(t('profile.success'), t('profile.profileUpdated'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
+      Alert.alert(t('profile.error'), t('profile.cannotUpdate'));
     }
   };
 
-  const handleLanguageSelect = (lang: string) => {
+  const handleLanguageSelect = async (lang: string) => {
     setSelectedLanguage(lang);
     setLanguageModalVisible(false);
-    Alert.alert(
-      'Changement de langue',
-      `La langue ${lang === 'fr' ? 'Français' : lang === 'ar' ? 'العربية' : 'English'} sera disponible dans une prochaine mise à jour.`,
-      [{ text: 'OK' }]
-    );
+    
+    
+    await saveLanguage(lang);
+    
+    i18n.changeLanguage(lang);
+    const isRTL = lang === 'ar';
+    if (I18nManager.isRTL !== isRTL) {
+      I18nManager.forceRTL(isRTL);
+      Alert.alert(
+        t('profile.success'),
+        'Veuillez redémarrer l\'application pour appliquer la direction du texte.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const calculateIMC = () => {
@@ -162,22 +171,22 @@ export default function Profile() {
   const menuItems = [
     {
       icon: 'person-outline',
-      title: 'Modifier le profil',
-      subtitle: 'Informations personnelles',
+      title: t('profile.editProfile'),
+      subtitle: t('profile.personalInfo'),
       color: '#C4ABDC',
       onPress: handleEditProfile,
     },
     {
       icon: 'language-outline',
-      title: 'Langue',
-      subtitle: selectedLanguage === 'fr' ? 'Français' : selectedLanguage === 'ar' ? 'العربية' : 'English',
+      title: t('profile.language'),
+      subtitle: selectedLanguage === 'fr' ? t('profile.french') : selectedLanguage === 'ar' ? t('profile.arabic') : t('profile.english'),
       color: '#9B88D3',
       onPress: () => setLanguageModalVisible(true),
     },
     {
       icon: 'notifications-outline',
-      title: 'Notifications',
-      subtitle: notifications ? 'Activées' : 'Désactivées',
+      title: t('profile.notifications'),
+      subtitle: notifications ? t('profile.enabled') : t('profile.disabled'),
       color: '#FFB5E8',
       hasSwitch: true,
       switchValue: notifications,
@@ -185,24 +194,24 @@ export default function Profile() {
     },
     {
       icon: 'document-text-outline',
-      title: 'Conditions d\'utilisation',
-      subtitle: 'Politique de confidentialité',
+      title: t('profile.termsOfUse'),
+      subtitle: t('profile.privacyPolicy'),
       color: '#BBA0E8',
-      onPress: () => Alert.alert('Info', 'Conditions d\'utilisation'),
+      onPress: () => Alert.alert(t('profile.termsOfUse'), t('profile.privacyPolicy')),
     },
     {
       icon: 'help-circle-outline',
-      title: 'Aide & Support',
-      subtitle: 'Besoin d\'aide ?',
+      title: t('profile.helpSupport'),
+      subtitle: t('profile.needHelp'),
       color: '#9B88D3',
-      onPress: () => Alert.alert('Support', 'Contactez-nous : support@santefem.com'),
+      onPress: () => Alert.alert(t('profile.helpSupport'), 'support@santefem.com'),
     },
     {
       icon: 'information-circle-outline',
-      title: 'À propos',
-      subtitle: 'Version 1.0.0',
+      title: t('profile.about'),
+      subtitle: t('profile.version'),
       color: '#C4ABDC',
-      onPress: () => Alert.alert('SantéFem', 'Version 1.0.0\n\nVotre compagnon santé au quotidien'),
+      onPress: () => Alert.alert('SantéFem', t('profile.version')),
     },
   ];
 
@@ -214,7 +223,7 @@ export default function Profile() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil</Text>
+          <Text style={styles.headerTitle}>{t('profile.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -245,12 +254,12 @@ export default function Profile() {
               <View style={styles.profileStats}>
                 <View style={styles.profileStatItem}>
                   <Text style={styles.profileStatValue}>S{userData.semaineGrossesse}</Text>
-                  <Text style={styles.profileStatLabel}>Semaine</Text>
+                  <Text style={styles.profileStatLabel}>{t('profile.week')}</Text>
                 </View>
                 <View style={styles.profileStatDivider} />
                 <View style={styles.profileStatItem}>
                   <Text style={styles.profileStatValue}>{getDaysUntilDue()}j</Text>
-                  <Text style={styles.profileStatLabel}>Restants</Text>
+                  <Text style={styles.profileStatLabel}>{t('profile.remaining')}</Text>
                 </View>
                 <View style={styles.profileStatDivider} />
                 <View style={styles.profileStatItem}>
@@ -266,10 +275,10 @@ export default function Profile() {
                   <Ionicons name="body-outline" size={24} color="#C4ABDC" />
                 </View>
                 <View style={styles.infoCardContent}>
-                  <Text style={styles.infoCardLabel}>Poids actuel</Text>
+                  <Text style={styles.infoCardLabel}>{t('profile.currentWeight')}</Text>
                   <Text style={styles.infoCardValue}>{userData.poids} kg</Text>
                   <Text style={styles.infoCardSubtext}>
-                    +{calculateWeightGain()} kg depuis le début
+                    +{calculateWeightGain()} kg {t('profile.sinceStart')}
                   </Text>
                 </View>
               </View>
@@ -279,17 +288,17 @@ export default function Profile() {
                   <Ionicons name="calendar-outline" size={24} color="#FFB5E8" />
                 </View>
                 <View style={styles.infoCardContent}>
-                  <Text style={styles.infoCardLabel}>Date prévue</Text>
+                  <Text style={styles.infoCardLabel}>{t('profile.dueDate')}</Text>
                   <Text style={styles.infoCardValue}>{userData.dateAccouchement}</Text>
                   <Text style={styles.infoCardSubtext}>
-                    {getDaysUntilDue()} jours restants
+                    {getDaysUntilDue()} {t('profile.daysRemaining')}
                   </Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Paramètres</Text>
+              <Text style={styles.sectionTitle}>{t('profile.settings')}</Text>
 
               {menuItems.map((item, index) => (
                 <TouchableOpacity
@@ -323,56 +332,56 @@ export default function Profile() {
               <View style={styles.logoutIcon}>
                 <Ionicons name="log-out-outline" size={22} color="#FF9AA2" />
               </View>
-              <Text style={styles.logoutText}>Déconnexion</Text>
+              <Text style={styles.logoutText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
 
             <Text style={styles.footerText}>
-              Membre depuis {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+              {t('profile.memberSince')} {new Date().toLocaleDateString(i18n.language === 'ar' ? 'ar-DZ' : 'fr-FR', { month: 'long', year: 'numeric' })}
             </Text>
           </View>
         </ScrollView>
 
-        
+        {/* Modal d'édition */}
         <Modal visible={editModalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Modifier le profil</Text>
+                <Text style={styles.modalTitle}>{t('profile.editProfileTitle')}</Text>
                 <TouchableOpacity onPress={() => setEditModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Nom *</Text>
+                <Text style={styles.inputLabel}>{t('profile.lastName')} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Votre nom"
+                  placeholder={t('profile.lastName')}
                   placeholderTextColor="#9B88D3"
                   value={editNom}
                   onChangeText={setEditNom}
                 />
 
-                <Text style={styles.inputLabel}>Prénom *</Text>
+                <Text style={styles.inputLabel}>{t('profile.firstName')} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Votre prénom"
+                  placeholder={t('profile.firstName')}
                   placeholderTextColor="#9B88D3"
                   value={editPrenom}
                   onChangeText={setEditPrenom}
                 />
 
-                <Text style={styles.inputLabel}>Âge *</Text>
+                <Text style={styles.inputLabel}>{t('profile.age')} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Votre âge"
+                  placeholder={t('profile.age')}
                   placeholderTextColor="#9B88D3"
                   keyboardType="numeric"
                   value={editAge}
                   onChangeText={setEditAge}
                 />
 
-                <Text style={styles.inputLabel}>Poids actuel (kg) *</Text>
+                <Text style={styles.inputLabel}>{t('profile.currentWeightKg')} *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 65"
@@ -382,7 +391,7 @@ export default function Profile() {
                   onChangeText={setEditPoids}
                 />
 
-                <Text style={styles.inputLabel}>Taille (cm) *</Text>
+                <Text style={styles.inputLabel}>{t('profile.heightCm')} *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 165"
@@ -399,7 +408,7 @@ export default function Profile() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
@@ -407,11 +416,11 @@ export default function Profile() {
           </View>
         </Modal>
 
-        
+        {/* Modal de sélection de langue */}
         <Modal visible={languageModalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.languageModalContent}>
-              <Text style={styles.languageModalTitle}>Choisir la langue</Text>
+              <Text style={styles.languageModalTitle}>{t('profile.selectLanguage')}</Text>
               
               <TouchableOpacity
                 style={[styles.languageOption, selectedLanguage === 'fr' && styles.languageOptionActive]}
@@ -422,7 +431,7 @@ export default function Profile() {
                   <Text style={styles.languageFlagText}>🇫🇷</Text>
                 </View>
                 <View style={styles.languageInfo}>
-                  <Text style={styles.languageName}>Français</Text>
+                  <Text style={styles.languageName}>{t('profile.french')}</Text>
                   <Text style={styles.languageNative}>French</Text>
                 </View>
                 {selectedLanguage === 'fr' && (
@@ -439,7 +448,7 @@ export default function Profile() {
                   <Text style={styles.languageFlagText}>🇩🇿</Text>
                 </View>
                 <View style={styles.languageInfo}>
-                  <Text style={styles.languageName}>العربية</Text>
+                  <Text style={styles.languageName}>{t('profile.arabic')}</Text>
                   <Text style={styles.languageNative}>Arabic</Text>
                 </View>
                 {selectedLanguage === 'ar' && (
@@ -448,27 +457,10 @@ export default function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.languageOption, selectedLanguage === 'en' && styles.languageOptionActive]}
-                onPress={() => handleLanguageSelect('en')}
-                activeOpacity={0.7}
-              >
-                <View style={styles.languageFlag}>
-                  <Text style={styles.languageFlagText}>🇬🇧</Text>
-                </View>
-                <View style={styles.languageInfo}>
-                  <Text style={styles.languageName}>English</Text>
-                  <Text style={styles.languageNative}>English</Text>
-                </View>
-                {selectedLanguage === 'en' && (
-                  <Ionicons name="checkmark-circle" size={24} color="#C4ABDC" />
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setLanguageModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
