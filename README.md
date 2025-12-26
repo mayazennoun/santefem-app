@@ -364,29 +364,14 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 ## 👨‍💻 Auteur
 
 **Votre Nom**
-- GitHub: [@votre-username](https://github.com/votre-username)
-- Email: votre.email@example.com
+- GitHub: [@mayazennoun ](https://github.com/mayazennoun )
+- Email: zennounmaya@gmail.com
 
 ---
 
 ## 🙏 Remerciements
 
-- [React Native](https://reactnative.dev/)
-- [Expo](https://expo.dev/)
-- [Firebase](https://firebase.google.com/)
-- [Ionicons](https://ionic.io/ionicons)
 - Toutes les futures mamans qui ont testé l'application
-
----
-
-## 📞 Support
-
-Pour toute question ou problème :
-- 📧 Email : support@santefem.com
-- 💬 Discord : [Rejoindre le serveur](https://discord.gg/santefem)
-- 🐦 Twitter : [@SanteFemApp](https://twitter.com/santefemapp)
-
----
 
 <div align="center">
 
