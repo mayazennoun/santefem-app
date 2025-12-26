@@ -4,17 +4,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-    Alert,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { auth, db } from './firebaseConfig';
@@ -29,6 +30,7 @@ interface WeightRecord {
 }
 
 export default function WeightTracking() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [records, setRecords] = useState<WeightRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -73,7 +75,7 @@ export default function WeightTracking() {
 
     const weight = parseFloat(newWeight);
     if (!weight || weight <= 0 || weight > 200) {
-      Alert.alert('Erreur', 'Veuillez entrer un poids valide');
+      Alert.alert(t('common.error'), t('weightTracking.enterValidWeight'));
       return;
     }
 
@@ -85,9 +87,9 @@ export default function WeightTracking() {
 
       setNewWeight('');
       setModalVisible(false);
-      Alert.alert('Succès', 'Pesée enregistrée');
+      Alert.alert(t('common.success'), t('weightTracking.weightRecorded'));
     } catch (error) {
-      Alert.alert('Erreur', "Impossible d'ajouter la pesée");
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
@@ -107,7 +109,7 @@ export default function WeightTracking() {
 
   const chartData = {
     labels: [
-      'Début',
+      t('weightTracking.start'),
       ...records.slice(-5).map(r => formatDateShort(r.date))
     ],
     datasets: [
@@ -132,7 +134,7 @@ export default function WeightTracking() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Suivi du Poids</Text>
+          <Text style={styles.headerTitle}>{t('weightTracking.title')}</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
             <Ionicons name="add" size={24} color="#C4ABDC" />
           </TouchableOpacity>
@@ -144,18 +146,18 @@ export default function WeightTracking() {
               <View style={styles.statCard}>
                 <Ionicons name="trending-up-outline" size={28} color="#C4ABDC" />
                 <Text style={styles.statValue}>+{calculateGain()} kg</Text>
-                <Text style={styles.statLabel}>Prise de poids</Text>
+                <Text style={styles.statLabel}>{t('weightTracking.weightGain')}</Text>
               </View>
 
               <View style={styles.statCard}>
                 <Ionicons name="fitness-outline" size={28} color="#9B88D3" />
                 <Text style={styles.statValue}>{currentWeight} kg</Text>
-                <Text style={styles.statLabel}>Poids actuel</Text>
+                <Text style={styles.statLabel}>{t('weightTracking.currentWeight')}</Text>
               </View>
             </View>
 
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Évolution</Text>
+              <Text style={styles.chartTitle}>{t('weightTracking.evolution')}</Text>
               {records.length > 0 ? (
                 <View style={styles.chartWrapper}>
                   <LineChart
@@ -206,21 +208,21 @@ export default function WeightTracking() {
               ) : (
                 <View style={styles.emptyChart}>
                   <Ionicons name="analytics-outline" size={50} color="#5D3A7D" />
-                  <Text style={styles.emptyChartText}>Ajoutez des pesées pour voir l'évolution</Text>
+                  <Text style={styles.emptyChartText}>{t('weightTracking.addWeightEvolution')}</Text>
                 </View>
               )}
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Historique</Text>
+              <Text style={styles.sectionTitle}>{t('weightTracking.history')}</Text>
               <Text style={styles.sectionCount}>{records.length}</Text>
             </View>
 
             {records.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="scale-outline" size={60} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucune pesée enregistrée</Text>
-                <Text style={styles.emptySubtext}>Ajoutez votre première pesée</Text>
+                <Text style={styles.emptyText}>{t('weightTracking.noWeightRecord')}</Text>
+                <Text style={styles.emptySubtext}>{t('weightTracking.addFirstWeight')}</Text>
               </View>
             ) : (
               records
@@ -254,7 +256,7 @@ export default function WeightTracking() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nouvelle pesée</Text>
+                <Text style={styles.modalTitle}>{t('weightTracking.newWeight')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
@@ -262,7 +264,7 @@ export default function WeightTracking() {
 
               <View style={styles.modalBody}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Poids actuel (kg)</Text>
+                  <Text style={styles.inputLabel}>{t('weightTracking.currentWeightKg')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Ex: 68.5"
@@ -276,7 +278,7 @@ export default function WeightTracking() {
                 <View style={styles.infoCard}>
                   <Ionicons name="information-circle-outline" size={20} color="#C4ABDC" />
                   <Text style={styles.infoText}>
-                    Votre poids avant grossesse : {poidsAvantGrossesse} kg
+                    {t('weightTracking.weightBeforePregnancy')} : {poidsAvantGrossesse} kg
                   </Text>
                 </View>
 
@@ -287,7 +289,7 @@ export default function WeightTracking() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +25,7 @@ type FocusedInput = 'email' | 'password' | null;
 const { width, height } = Dimensions.get('window');
 
 export default function Login() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -60,16 +62,16 @@ export default function Login() {
 
   const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert(t('common.error'), t('login.errorFillFields'));
       return;
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/home');
     } catch (error: any) {
-      Alert.alert('Erreur', error.message);
+      Alert.alert(t('common.error'), error.message);
     }
-  }, [email, password, router]);
+  }, [email, password, router, t]);
 
   const togglePasswordVisibility = useCallback(() => setShowPassword(prev => !prev), []);
   const navigateToSignup = useCallback(() => router.push('/signup'), [router]);
@@ -101,8 +103,8 @@ export default function Login() {
           </Animated.View>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <Text style={styles.appTitle}>SantéFem</Text>
-            <Text style={styles.subtitle}>Votre compagnon santé au quotidien</Text>
+            <Text style={styles.appTitle}>{t('login.title')}</Text>
+            <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
           </Animated.View>
 
           <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
@@ -111,7 +113,7 @@ export default function Login() {
               <MaterialIcons name="email" size={22} color="#C4ABDC" style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Adresse e-mail"
+                placeholder={t('login.email')}
                 placeholderTextColor="#CBBFE5"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -128,7 +130,7 @@ export default function Login() {
               <MaterialIcons name="lock" size={22} color="#C4ABDC" style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Mot de passe"
+                placeholder={t('login.password')}
                 placeholderTextColor="#CBBFE5"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -144,30 +146,30 @@ export default function Login() {
             </View>
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
+              <Text style={styles.forgotPasswordText}>{t('login.forgotPassword')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <LinearGradient colors={['#BBA0E8', '#9B88D3', '#876BB8']} start={[0, 0]} end={[1, 1]} style={styles.buttonGradient}>
-                <Text style={styles.buttonText}>Se connecter</Text>
+                <Text style={styles.buttonText}>{t('login.signIn')}</Text>
                 <MaterialIcons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 8 }} />
               </LinearGradient>
             </TouchableOpacity>
 
             <View style={styles.dividerContainer}>
               <View style={styles.divider} />
-              <Text style={styles.dividerText}>ou</Text>
+              <Text style={styles.dividerText}>{t('login.or')}</Text>
               <View style={styles.divider} />
             </View>
 
             <TouchableOpacity style={styles.signupButton} onPress={navigateToSignup}>
-              <Text style={styles.signupButtonText}>Créer un compte</Text>
+              <Text style={styles.signupButtonText}>{t('login.createAccount')}</Text>
             </TouchableOpacity>
           </Animated.View>
 
           <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
             <Text style={styles.footerText}>
-              En vous connectant, vous acceptez nos <Text style={styles.footerLink}>Conditions d'utilisation</Text>
+              {t('login.terms')} <Text style={styles.footerLink}>{t('login.termsLink')}</Text>
             </Text>
           </Animated.View>
         </View>

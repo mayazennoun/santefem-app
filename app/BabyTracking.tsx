@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
@@ -45,6 +46,7 @@ interface KickCount {
 }
 
 export default function BabyTracking() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [kickCounts, setKickCounts] = useState<KickCount[]>([]);
@@ -54,7 +56,7 @@ export default function BabyTracking() {
   const [currentWeek, setCurrentWeek] = useState(24);
   const [currentWeight, setCurrentWeight] = useState(0);
 
-  // Form states for measurements
+  
   const [week, setWeek] = useState('');
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
@@ -64,7 +66,6 @@ export default function BabyTracking() {
   const [notes, setNotes] = useState('');
   const [ultrasound, setUltrasound] = useState(false);
 
-  
   const [kickTime, setKickTime] = useState('');
   const [kickCount, setKickCount] = useState('');
   const [kickDuration, setKickDuration] = useState('');
@@ -75,7 +76,6 @@ export default function BabyTracking() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    
     const userRef = doc(db, 'users', auth.currentUser.uid);
     const unsubUser = onSnapshot(userRef, docSnap => {
       if (docSnap.exists()) {
@@ -85,7 +85,6 @@ export default function BabyTracking() {
       }
     });
 
-    
     const qMeasurements = query(
       collection(db, 'users', auth.currentUser.uid, 'baby_measurements'),
       orderBy('createdAt', 'desc')
@@ -101,7 +100,6 @@ export default function BabyTracking() {
       setMeasurements(data);
     });
 
-    
     const qKicks = query(
       collection(db, 'users', auth.currentUser.uid, 'kick_counts'),
       orderBy('createdAt', 'desc')
@@ -128,7 +126,7 @@ export default function BabyTracking() {
     if (!auth.currentUser) return;
 
     if (!week || !weight) {
-      Alert.alert('Erreur', 'Veuillez remplir au moins la semaine et le poids');
+      Alert.alert(t('common.error'), t('common.fillAllFields'));
       return;
     }
 
@@ -148,9 +146,9 @@ export default function BabyTracking() {
       await addDoc(collection(db, 'users', auth.currentUser.uid, 'baby_measurements'), measurementData);
       resetMeasurementForm();
       setModalVisible(false);
-      Alert.alert('Succès', 'Mesure ajoutée');
+      Alert.alert(t('common.success'), t('babyTracking.measurementAdded'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter la mesure');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
@@ -158,7 +156,7 @@ export default function BabyTracking() {
     if (!auth.currentUser) return;
 
     if (!kickTime || !kickCount) {
-      Alert.alert('Erreur', 'Veuillez remplir l\'heure et le nombre de coups');
+      Alert.alert(t('common.error'), t('common.fillAllFields'));
       return;
     }
 
@@ -174,23 +172,23 @@ export default function BabyTracking() {
       await addDoc(collection(db, 'users', auth.currentUser.uid, 'kick_counts'), kickData);
       resetKickForm();
       setKickModalVisible(false);
-      Alert.alert('Succès', 'Mouvements enregistrés');
+      Alert.alert(t('common.success'), t('babyTracking.movementsRecorded'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'enregistrer');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
   const handleDeleteMeasurement = (id: string) => {
-    Alert.alert('Confirmation', 'Supprimer cette mesure ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('appointments.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'baby_measurements', id));
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
@@ -198,16 +196,16 @@ export default function BabyTracking() {
   };
 
   const handleDeleteKick = (id: string) => {
-    Alert.alert('Confirmation', 'Supprimer cet enregistrement ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('appointments.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'kick_counts', id));
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
@@ -268,7 +266,7 @@ export default function BabyTracking() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Suivi Bébé</Text>
+          <Text style={styles.headerTitle}>{t('babyTracking.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -276,17 +274,17 @@ export default function BabyTracking() {
           <View style={styles.statCard}>
             <Ionicons name="body-outline" size={24} color="#C4ABDC" />
             <Text style={styles.statValue}>{currentWeight.toFixed(2)} kg</Text>
-            <Text style={styles.statLabel}>Poids estimé S{currentWeek}</Text>
+            <Text style={styles.statLabel}>{t('babyTracking.estimatedWeight')} S{currentWeek}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="pulse-outline" size={24} color="#FFB5E8" />
             <Text style={styles.statValue}>{getTodayKicks()}</Text>
-            <Text style={styles.statLabel}>Coups aujourd'hui</Text>
+            <Text style={styles.statLabel}>{t('babyTracking.kicksToday')}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="trending-up-outline" size={24} color="#9B88D3" />
             <Text style={styles.statValue}>{getWeightGrowth()}%</Text>
-            <Text style={styles.statLabel}>Croissance</Text>
+            <Text style={styles.statLabel}>{t('babyTracking.growth')}</Text>
           </View>
         </View>
 
@@ -297,7 +295,7 @@ export default function BabyTracking() {
             activeOpacity={0.7}
           >
             <Ionicons name="analytics-outline" size={20} color={selectedTab === 'growth' ? '#1B0E20' : '#C4ABDC'} />
-            <Text style={[styles.tabText, selectedTab === 'growth' && styles.tabTextActive]}>Croissance</Text>
+            <Text style={[styles.tabText, selectedTab === 'growth' && styles.tabTextActive]}>{t('babyTracking.growth')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, selectedTab === 'kicks' && styles.tabActive]}
@@ -305,7 +303,7 @@ export default function BabyTracking() {
             activeOpacity={0.7}
           >
             <Ionicons name="heart-outline" size={20} color={selectedTab === 'kicks' ? '#1B0E20' : '#C4ABDC'} />
-            <Text style={[styles.tabText, selectedTab === 'kicks' && styles.tabTextActive]}>Mouvements</Text>
+            <Text style={[styles.tabText, selectedTab === 'kicks' && styles.tabTextActive]}>{t('babyTracking.movements')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -316,8 +314,8 @@ export default function BabyTracking() {
                 {measurements.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="analytics-outline" size={60} color="#5D3A7D" />
-                    <Text style={styles.emptyText}>Aucune mesure</Text>
-                    <Text style={styles.emptySubtext}>Ajoutez les mesures de vos échographies</Text>
+                    <Text style={styles.emptyText}>{t('babyTracking.noMeasurement')}</Text>
+                    <Text style={styles.emptySubtext}>{t('babyTracking.addUltrasoundMeasurements')}</Text>
                   </View>
                 ) : (
                   measurements.map(measurement => (
@@ -332,13 +330,13 @@ export default function BabyTracking() {
                             />
                           </View>
                           <View>
-                            <Text style={styles.measurementWeek}>Semaine {measurement.week}</Text>
+                            <Text style={styles.measurementWeek}>{t('babyTracking.week')} {measurement.week}</Text>
                             <Text style={styles.measurementDate}>{formatDate(measurement.date)}</Text>
                           </View>
                         </View>
                         {measurement.ultrasound && (
                           <View style={styles.ultrasoundBadge}>
-                            <Text style={styles.ultrasoundBadgeText}>Échographie</Text>
+                            <Text style={styles.ultrasoundBadgeText}>{t('babyTracking.ultrasoundLabel')}</Text>
                           </View>
                         )}
                       </View>
@@ -347,35 +345,35 @@ export default function BabyTracking() {
                         {measurement.weight > 0 && (
                           <View style={styles.measurementItem}>
                             <Ionicons name="barbell-outline" size={18} color="#C4ABDC" />
-                            <Text style={styles.measurementLabel}>Poids</Text>
+                            <Text style={styles.measurementLabel}>{t('babyDevelopment.weight')}</Text>
                             <Text style={styles.measurementValue}>{measurement.weight} kg</Text>
                           </View>
                         )}
                         {measurement.height > 0 && (
                           <View style={styles.measurementItem}>
                             <Ionicons name="resize-outline" size={18} color="#FFB5E8" />
-                            <Text style={styles.measurementLabel}>Taille</Text>
+                            <Text style={styles.measurementLabel}>{t('babyTracking.size')}</Text>
                             <Text style={styles.measurementValue}>{measurement.height} cm</Text>
                           </View>
                         )}
                         {measurement.headCircumference > 0 && (
                           <View style={styles.measurementItem}>
                             <Ionicons name="ellipse-outline" size={18} color="#9B88D3" />
-                            <Text style={styles.measurementLabel}>Périmètre crânien</Text>
+                            <Text style={styles.measurementLabel}>{t('babyTracking.headCircumference')}</Text>
                             <Text style={styles.measurementValue}>{measurement.headCircumference} cm</Text>
                           </View>
                         )}
                         {measurement.abdominalCircumference > 0 && (
                           <View style={styles.measurementItem}>
                             <Ionicons name="radio-button-off-outline" size={18} color="#876BB8" />
-                            <Text style={styles.measurementLabel}>Périmètre abdominal</Text>
+                            <Text style={styles.measurementLabel}>{t('babyTracking.abdominalCircumference')}</Text>
                             <Text style={styles.measurementValue}>{measurement.abdominalCircumference} cm</Text>
                           </View>
                         )}
                         {measurement.femurlength > 0 && (
                           <View style={styles.measurementItem}>
                             <Ionicons name="remove-outline" size={18} color="#BBA0E8" />
-                            <Text style={styles.measurementLabel}>Longueur fémur</Text>
+                            <Text style={styles.measurementLabel}>{t('babyTracking.femurLength')}</Text>
                             <Text style={styles.measurementValue}>{measurement.femurlength} cm</Text>
                           </View>
                         )}
@@ -383,7 +381,7 @@ export default function BabyTracking() {
 
                       {measurement.notes && (
                         <View style={styles.notesSection}>
-                          <Text style={styles.notesLabel}>Notes:</Text>
+                          <Text style={styles.notesLabel}>{t('myHealth.notes')}:</Text>
                           <Text style={styles.notesText}>{measurement.notes}</Text>
                         </View>
                       )}
@@ -393,7 +391,7 @@ export default function BabyTracking() {
                         onPress={() => handleDeleteMeasurement(measurement.id)}
                       >
                         <Ionicons name="trash-outline" size={18} color="#FF9AA2" />
-                        <Text style={styles.deleteButtonText}>Supprimer</Text>
+                        <Text style={styles.deleteButtonText}>{t('common.delete')}</Text>
                       </TouchableOpacity>
                     </View>
                   ))
@@ -404,22 +402,22 @@ export default function BabyTracking() {
                 {kickCounts.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="heart-outline" size={60} color="#5D3A7D" />
-                    <Text style={styles.emptyText}>Aucun mouvement</Text>
-                    <Text style={styles.emptySubtext}>Commencez à compter les coups de pieds</Text>
+                    <Text style={styles.emptyText}>{t('babyTracking.noMovement')}</Text>
+                    <Text style={styles.emptySubtext}>{t('babyTracking.startCounting')}</Text>
                   </View>
                 ) : (
                   <>
                     <View style={styles.kickStatsCard}>
-                      <Text style={styles.kickStatsTitle}>📊 Statistiques</Text>
+                      <Text style={styles.kickStatsTitle}>{t('babyTracking.statistics')}</Text>
                       <View style={styles.kickStatsRow}>
                         <View style={styles.kickStatItem}>
                           <Text style={styles.kickStatValue}>{getAverageKicksPerDay()}</Text>
-                          <Text style={styles.kickStatLabel}>Moyenne/jour</Text>
+                          <Text style={styles.kickStatLabel}>{t('babyTracking.averagePerDay')}</Text>
                         </View>
                         <View style={styles.kickStatDivider} />
                         <View style={styles.kickStatItem}>
                           <Text style={styles.kickStatValue}>{kickCounts.length}</Text>
-                          <Text style={styles.kickStatLabel}>Sessions</Text>
+                          <Text style={styles.kickStatLabel}>{t('babyTracking.sessions')}</Text>
                         </View>
                       </View>
                     </View>
@@ -431,7 +429,7 @@ export default function BabyTracking() {
                             <Ionicons name="heart" size={24} color="#FFB5E8" />
                           </View>
                           <View style={styles.kickHeaderInfo}>
-                            <Text style={styles.kickCount}>{kick.count} coups</Text>
+                            <Text style={styles.kickCount}>{kick.count} {t('babyTracking.kicks')}</Text>
                             <Text style={styles.kickTime}>{formatDate(kick.date)} • {kick.time}</Text>
                           </View>
                           <TouchableOpacity onPress={() => handleDeleteKick(kick.id)}>
@@ -441,7 +439,7 @@ export default function BabyTracking() {
                         {kick.duration > 0 && (
                           <View style={styles.kickDetail}>
                             <Ionicons name="time-outline" size={16} color="#9B88D3" />
-                            <Text style={styles.kickDetailText}>Durée: {kick.duration} min</Text>
+                            <Text style={styles.kickDetailText}>{t('babyTracking.kickDuration')}: {kick.duration} min</Text>
                           </View>
                         )}
                         {kick.notes && (
@@ -471,19 +469,19 @@ export default function BabyTracking() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Modal Mesures */}
+        
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nouvelle mesure</Text>
+                <Text style={styles.modalTitle}>{t('babyTracking.newMeasurement')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Semaine de grossesse *</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.pregnancyWeek')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 24"
@@ -493,7 +491,7 @@ export default function BabyTracking() {
                   onChangeText={setWeek}
                 />
 
-                <Text style={styles.inputLabel}>Poids estimé (kg) *</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.estimatedWeightKg')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 0.6"
@@ -503,7 +501,7 @@ export default function BabyTracking() {
                   onChangeText={setWeight}
                 />
 
-                <Text style={styles.inputLabel}>Taille (cm)</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.size')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 30"
@@ -513,7 +511,7 @@ export default function BabyTracking() {
                   onChangeText={setHeight}
                 />
 
-                <Text style={styles.inputLabel}>Périmètre crânien (cm)</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.headCircumference')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 22"
@@ -523,7 +521,7 @@ export default function BabyTracking() {
                   onChangeText={setHeadCircumference}
                 />
 
-                <Text style={styles.inputLabel}>Périmètre abdominal (cm)</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.abdominalCircumference')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 20"
@@ -533,7 +531,7 @@ export default function BabyTracking() {
                   onChangeText={setAbdominalCircumference}
                 />
 
-                <Text style={styles.inputLabel}>Longueur du fémur (cm)</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.femurLength')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 4.5"
@@ -543,10 +541,10 @@ export default function BabyTracking() {
                   onChangeText={setFemurLength}
                 />
 
-                <Text style={styles.inputLabel}>Notes</Text>
+                <Text style={styles.inputLabel}>{t('myHealth.notes')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Observations du médecin..."
+                  placeholder={t('myHealth.additionalDetails')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={4}
@@ -557,7 +555,7 @@ export default function BabyTracking() {
                 <TouchableOpacity style={styles.ultrasoundToggle} onPress={() => setUltrasound(!ultrasound)}>
                   <View style={styles.ultrasoundToggleLeft}>
                     <Ionicons name="scan-outline" size={20} color="#C4ABDC" />
-                    <Text style={styles.ultrasoundToggleText}>Échographie</Text>
+                    <Text style={styles.ultrasoundToggleText}>{t('babyTracking.ultrasoundLabel')}</Text>
                   </View>
                   <View style={[styles.toggle, ultrasound && styles.toggleActive]}>
                     <View style={[styles.toggleThumb, ultrasound && styles.toggleThumbActive]} />
@@ -571,7 +569,7 @@ export default function BabyTracking() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
@@ -584,14 +582,14 @@ export default function BabyTracking() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Compter les mouvements</Text>
+                <Text style={styles.modalTitle}>{t('babyTracking.countMovements')}</Text>
                 <TouchableOpacity onPress={() => setKickModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Heure *</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.kickTime')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="HH:MM"
@@ -600,7 +598,7 @@ export default function BabyTracking() {
                   onChangeText={setKickTime}
                 />
 
-                <Text style={styles.inputLabel}>Nombre de coups *</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.kickCount')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 10"
@@ -610,7 +608,7 @@ export default function BabyTracking() {
                   onChangeText={setKickCount}
                 />
 
-                <Text style={styles.inputLabel}>Durée (minutes)</Text>
+                <Text style={styles.inputLabel}>{t('babyTracking.kickDuration')}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: 30"
@@ -620,10 +618,10 @@ export default function BabyTracking() {
                   onChangeText={setKickDuration}
                 />
 
-                <Text style={styles.inputLabel}>Notes</Text>
+                <Text style={styles.inputLabel}>{t('myHealth.notes')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Remarques..."
+                  placeholder={t('myHealth.additionalDetails')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={4}
@@ -634,7 +632,7 @@ export default function BabyTracking() {
                 <View style={styles.infoCard}>
                   <Ionicons name="information-circle-outline" size={20} color="#9B88D3" />
                   <Text style={styles.infoText}>
-                    💡 Comptez 10 mouvements en moins de 2 heures. Si vous remarquez une diminution, consultez votre médecin.
+                    {t('babyTracking.kickInfo')}
                   </Text>
                 </View>
 
@@ -645,7 +643,7 @@ export default function BabyTracking() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>

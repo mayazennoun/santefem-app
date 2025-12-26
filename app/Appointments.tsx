@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
@@ -19,8 +20,6 @@ import {
 import { auth, db } from './firebaseConfig';
 
 const { width } = Dimensions.get('window');
-const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
 interface Appointment {
   id: string;
@@ -37,6 +36,8 @@ interface Appointment {
 }
 
 export default function Calendar() {
+  
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,6 +57,15 @@ export default function Calendar() {
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
 
+  
+  const DAYS = i18n.language === 'ar' 
+    ? ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+    : ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  
+  const MONTHS = i18n.language === 'ar'
+    ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+    : ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
   const parseDate = (dateStr: string) => {
     const parts = dateStr.split('/');
     if (parts.length !== 3) return new Date();
@@ -66,7 +76,6 @@ export default function Calendar() {
     if (!auth.currentUser) return;
     
     try {
-
       const q = query(
         collection(db, 'users', auth.currentUser.uid, 'appointments'),
         orderBy('date', 'asc')
@@ -78,16 +87,14 @@ export default function Calendar() {
         ...doc.data(),
       })) as Appointment[];
       
-      
       const upcomingAppts = allAppointments.filter(a => !a.completed);
       
       if (upcomingAppts.length === 0) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          nextAppointment: 'Aucun rendez-vous prévu'
+          nextAppointment: t('appointments.noAppointment')
         });
         return;
       }
-      
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -98,14 +105,12 @@ export default function Calendar() {
         return apptDate >= today;
       });
       
-      
       if (futureAppts.length === 0) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          nextAppointment: 'Aucun rendez-vous prévu'
+          nextAppointment: t('appointments.noAppointment')
         });
         return;
       }
-      
       
       const sortedAppts = futureAppts.sort((a, b) => {
         const dateA = parseDate(a.date);
@@ -114,7 +119,7 @@ export default function Calendar() {
       });
       
       const nextAppt = sortedAppts[0];
-      const nextApptText = `${nextAppt.title} - ${nextAppt.date} à ${nextAppt.time}`;
+      const nextApptText = `${nextAppt.title} - ${nextAppt.date} ${t('appointments.at')} ${nextAppt.time}`;
       
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         nextAppointment: nextApptText
@@ -155,7 +160,6 @@ export default function Calendar() {
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as Appointment[];
       setAppointments(data);
-      
       
       updateNextAppointment();
     });
@@ -223,7 +227,7 @@ export default function Calendar() {
     if (!auth.currentUser) return;
 
     if (!title.trim() || !date.trim() || !time.trim() || !doctor.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir les champs obligatoires');
+      Alert.alert(t('common.error'), t('appointments.fillRequired'));
       return;
     }
 
@@ -243,35 +247,34 @@ export default function Calendar() {
     try {
       if (editingId) {
         await updateDoc(doc(db, 'users', auth.currentUser.uid, 'appointments', editingId), appointmentData);
-        Alert.alert('Succès', 'Rendez-vous modifié');
+        Alert.alert(t('common.success'), t('appointments.appointmentModified'));
       } else {
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'appointments'), appointmentData);
-        Alert.alert('Succès', 'Rendez-vous ajouté');
+        Alert.alert(t('common.success'), t('appointments.appointmentAdded'));
       }
       
       resetForm();
       setModalVisible(false);
       
-      // Mettre à jour le prochain RDV
       setTimeout(() => updateNextAppointment(), 500);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder le rendez-vous');
+      Alert.alert(t('common.error'), t('appointments.cannotSave'));
     }
   };
 
   const handleDeleteAppointment = (id: string) => {
-    Alert.alert('Confirmation', 'Supprimer ce rendez-vous ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('appointments.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'appointments', id));
-            Alert.alert('Succès', 'Rendez-vous supprimé');
+            Alert.alert(t('common.success'), t('appointments.appointmentDeleted'));
             setTimeout(() => updateNextAppointment(), 500);
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('appointments.cannotDelete'));
           }
         },
       },
@@ -286,7 +289,7 @@ export default function Calendar() {
       });
       setTimeout(() => updateNextAppointment(), 500);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre à jour');
+      Alert.alert(t('common.error'), t('appointments.cannotUpdate'));
     }
   };
 
@@ -332,18 +335,22 @@ export default function Calendar() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'échographie': return 'scan-outline';
+      case 'échographie': 
+      case 'ultrasound': return 'scan-outline';
       case 'consultation': return 'medical-outline';
-      case 'analyse': return 'flask-outline';
+      case 'analyse': 
+      case 'analysis': return 'flask-outline';
       default: return 'calendar-outline';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'échographie': return '#C4ABDC';
+      case 'échographie':
+      case 'ultrasound': return '#C4ABDC';
       case 'consultation': return '#9B88D3';
-      case 'analyse': return '#FFB5E8';
+      case 'analyse':
+      case 'analysis': return '#FFB5E8';
       default: return '#876BB8';
     }
   };
@@ -362,7 +369,7 @@ export default function Calendar() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Calendrier</Text>
+          <Text style={styles.headerTitle}>{t('appointments.title')}</Text>
           <TouchableOpacity onPress={handleQuickAdd} style={styles.addButton}>
             <Ionicons name="add" size={28} color="#C4ABDC" />
           </TouchableOpacity>
@@ -375,7 +382,7 @@ export default function Calendar() {
             </View>
             <View style={styles.countdownInfo}>
               <Text style={styles.countdownNumber}>{daysUntilDue}</Text>
-              <Text style={styles.countdownLabel}>jours avant l'accouchement</Text>
+              <Text style={styles.countdownLabel}>{t('appointments.daysUntilBirth')}</Text>
             </View>
           </View>
         )}
@@ -464,16 +471,16 @@ export default function Calendar() {
                 <Text style={styles.selectedDateCount}>
                   {selectedDateAppointments.length}
                 </Text>
-                <Text style={styles.selectedDateCountLabel}>RDV</Text>
+                <Text style={styles.selectedDateCountLabel}>{t('appointments.appointments')}</Text>
               </View>
             </View>
 
             {selectedDateAppointments.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="calendar-outline" size={50} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucun rendez-vous</Text>
+                <Text style={styles.emptyText}>{t('appointments.noAppointment')}</Text>
                 <TouchableOpacity style={styles.addQuickButton} onPress={handleQuickAdd}>
-                  <Text style={styles.addQuickButtonText}>Ajouter un RDV</Text>
+                  <Text style={styles.addQuickButtonText}>{t('appointments.addAppointment')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -540,25 +547,27 @@ export default function Calendar() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editingId ? 'Modifier' : 'Nouveau rendez-vous'}</Text>
+                <Text style={styles.modalTitle}>
+                  {editingId ? t('appointments.modify') : t('appointments.newAppointment')}
+                </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Titre *</Text>
+                <Text style={styles.inputLabel}>{t('appointments.titleLabel')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex: Échographie du 2ème trimestre"
+                  placeholder={t('appointments.titlePlaceholder')}
                   placeholderTextColor="#9B88D3"
                   value={title}
                   onChangeText={setTitle}
                 />
 
-                <Text style={styles.inputLabel}>Type de rendez-vous *</Text>
+                <Text style={styles.inputLabel}>{t('appointments.appointmentType')}</Text>
                 <View style={styles.typeSelector}>
-                  {['consultation', 'échographie', 'analyse'].map(t => (
+                  {['consultation', 'ultrasound', 'analysis'].map(t => (
                     <TouchableOpacity
                       key={t}
                       style={[styles.typeButton, type === t && { backgroundColor: getTypeColor(t) }]}
@@ -566,52 +575,52 @@ export default function Calendar() {
                     >
                       <Ionicons name={getTypeIcon(t) as any} size={18} color={type === t ? '#1B0E20' : getTypeColor(t)} />
                       <Text style={[styles.typeText, type === t && styles.typeTextActive]}>
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                        {i18n.t(`appointments.${t}`)}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Date *</Text>
+                <Text style={styles.inputLabel}>{t('appointments.dateLabel')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="JJ/MM/AAAA"
+                  placeholder={t('appointments.datePlaceholder')}
                   placeholderTextColor="#9B88D3"
                   value={date}
                   onChangeText={setDate}
                 />
 
-                <Text style={styles.inputLabel}>Heure *</Text>
+                <Text style={styles.inputLabel}>{t('appointments.timeLabel')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="HH:MM"
+                  placeholder={t('appointments.timePlaceholder')}
                   placeholderTextColor="#9B88D3"
                   value={time}
                   onChangeText={setTime}
                 />
 
-                <Text style={styles.inputLabel}>Médecin *</Text>
+                <Text style={styles.inputLabel}>{t('appointments.doctorLabel')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Dr. Nom"
+                  placeholder={t('appointments.doctorPlaceholder')}
                   placeholderTextColor="#9B88D3"
                   value={doctor}
                   onChangeText={setDoctor}
                 />
 
-                <Text style={styles.inputLabel}>Lieu</Text>
+                <Text style={styles.inputLabel}>{t('appointments.locationLabel')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Adresse du cabinet"
+                  placeholder={t('appointments.locationPlaceholder')}
                   placeholderTextColor="#9B88D3"
                   value={location}
                   onChangeText={setLocation}
                 />
 
-                <Text style={styles.inputLabel}>Notes</Text>
+                <Text style={styles.inputLabel}>{t('appointments.notesLabel')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Notes supplémentaires..."
+                  placeholder={t('appointments.notesPlaceholder')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={4}
@@ -622,7 +631,7 @@ export default function Calendar() {
                 <TouchableOpacity style={styles.reminderToggle} onPress={() => setReminder(!reminder)}>
                   <View style={styles.reminderToggleLeft}>
                     <Ionicons name="notifications-outline" size={20} color="#C4ABDC" />
-                    <Text style={styles.reminderToggleText}>Activer le rappel</Text>
+                    <Text style={styles.reminderToggleText}>{t('appointments.enableReminder')}</Text>
                   </View>
                   <View style={[styles.toggle, reminder && styles.toggleActive]}>
                     <View style={[styles.toggleThumb, reminder && styles.toggleThumbActive]} />
@@ -636,7 +645,9 @@ export default function Calendar() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>{editingId ? 'Modifier' : 'Enregistrer'}</Text>
+                    <Text style={styles.saveButtonText}>
+                      {editingId ? t('common.edit') : t('common.save')}
+                    </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>

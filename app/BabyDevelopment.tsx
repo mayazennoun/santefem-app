@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   Image,
@@ -28,97 +29,39 @@ interface WeekData {
   tips: string[];
 }
 
-const weeklyData: { [key: number]: WeekData } = {
-  8: {
-    week: 8,
-    size: "1,6 cm",
-    weight: 0.001,
-    description: "Votre bébé est de la taille d'un haricot",
-    developments: ["Formation des doigts et orteils", "Le cœur bat à 150 battements/min", "Les organes principaux se développent"],
-    motherSymptoms: ["Nausées matinales", "Fatigue intense", "Changements corporels liés aux hormones"],
-    tips: ["Repos fréquent", "Hydratation importante", "Éviter les odeurs fortes"]
-  },
-  12: {
-    week: 12,
-    size: "5,4 cm",
-    weight: 0.014,
-    description: "Votre bébé est de la taille d'une prune",
-    developments: ["Les ongles commencent à pousser", "Les réflexes se développent", "Peut bouger ses doigts"],
-    motherSymptoms: ["Nausées en diminution", "Augmentation de l'énergie", "Ventre commence à s'arrondir"],
-    tips: ["Première échographie", "Commencer les exercices doux", "Alimentation équilibrée"]
-  },
-  16: {
-    week: 16,
-    size: "11,6 cm",
-    weight: 0.1,
-    description: "Votre bébé est de la taille d'un avocat",
-    developments: ["Peut faire des grimaces", "Les yeux bougent", "Entend les sons"],
-    motherSymptoms: ["Regain d'énergie", "Peau plus lumineuse", "Premiers mouvements possibles"],
-    tips: ["Parlez à votre bébé", "Massages du ventre", "Activité physique modérée"]
-  },
-  20: {
-    week: 20,
-    size: "16,5 cm",
-    weight: 0.3,
-    description: "Votre bébé est de la taille d'une banane",
-    developments: ["Vernix protège la peau", "Cheveux et sourcils poussent", "Cycles de sommeil réguliers"],
-    motherSymptoms: ["Mouvements du bébé ressentis", "Ligne brune sur le ventre", "Augmentation de l'appétit"],
-    tips: ["Échographie morphologique", "Position de sommeil sur le côté", "Hydratation de la peau"]
-  },
-  24: {
-    week: 24,
-    size: "30 cm",
-    weight: 0.6,
-    description: "Votre bébé est de la taille d'un épi de maïs",
-    developments: ["Empreintes digitales formées", "Poumons en développement", "Reconnaît votre voix"],
-    motherSymptoms: ["Contractions de Braxton Hicks", "Douleurs lombaires", "Sommeil difficile"],
-    tips: ["Exercices de respiration", "Soutien lombaire", "Cours de préparation"]
-  },
-  28: {
-    week: 28,
-    size: "37,5 cm",
-    weight: 1.0,
-    description: "Votre bébé est de la taille d'une aubergine",
-    developments: ["Ouvre et ferme les yeux", "Respire le liquide amniotique", "Réagit à la lumière"],
-    motherSymptoms: ["Essoufflement", "Brûlures d'estomac", "Jambes lourdes"],
-    tips: ["Surveillez les mouvements", "Repos fréquent", "Suivi médical régulier"]
-  },
-  32: {
-    week: 32,
-    size: "42,5 cm",
-    weight: 1.7,
-    description: "Votre bébé est de la taille d'un chou",
-    developments: ["Prend du poids rapidement", "Se positionne tête en bas", "Système immunitaire actif"],
-    motherSymptoms: ["Fatigue accrue", "Douleurs dans le bas du dos et le bassin", "Contractions plus fréquentes"],
-    tips: ["Préparez la valise", "Cours de préparation", "Repos maximal"]
-  },
-  36: {
-    week: 36,
-    size: "47 cm",
-    weight: 2.6,
-    description: "Votre bébé est de la taille d'une papaye",
-    developments: ["Poumons presque matures", "Tête engagée dans le bassin", "Accumule de la graisse"],
-    motherSymptoms: ["Difficultés respiratoires", "Contractions régulières", "Impatience croissante"],
-    tips: ["Consultations hebdomadaires", "Surveillez les signes de travail", "Finalisez la chambre"]
-  },
-  40: {
-    week: 40,
-    size: "51 cm",
-    weight: 3.4,
-    description: "Votre bébé est prêt à naître",
-    developments: ["Totalement développé", "Prêt pour la vie extra-utérine", "Méconium dans l'intestin"],
-    motherSymptoms: ["Contractions régulières", "Signes annonciateurs de l'accouchement", "Rupture de la poche possible"],
-    tips: ["Restez calme", "Comptez les contractions", "Direction maternité si besoin"]
-  }
-};
-
 export default function BabyDevelopment() {
+  const { t, } = useTranslation();
   const router = useRouter();
   const [currentWeek, setCurrentWeek] = useState(24);
   const [currentData, setCurrentData] = useState<WeekData | null>(null);
   const [realBabyWeight, setRealBabyWeight] = useState<number>(0);
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
+
+  
+  const getWeeklyData = (week: number): WeekData => {
+    return {
+      week,
+      size: "", 
+      weight: 0, 
+      description: t(`babyDevelopment.week${week}.description`),
+      developments: [
+        t(`babyDevelopment.week${week}.dev1`),
+        t(`babyDevelopment.week${week}.dev2`),
+        t(`babyDevelopment.week${week}.dev3`)
+      ],
+      motherSymptoms: [
+        t(`babyDevelopment.week${week}.symptom1`),
+        t(`babyDevelopment.week${week}.symptom2`),
+        t(`babyDevelopment.week${week}.symptom3`)
+      ],
+      tips: [
+        t(`babyDevelopment.week${week}.tip1`),
+        t(`babyDevelopment.week${week}.tip2`),
+        t(`babyDevelopment.week${week}.tip3`)
+      ]
+    };
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -136,7 +79,7 @@ export default function BabyDevelopment() {
   }, []);
 
   useEffect(() => {
-    const availableWeeks = Object.keys(weeklyData).map(Number).sort((a, b) => a - b);
+    const availableWeeks = [8, 12, 16, 20, 24, 28, 32, 36, 40];
     let closestWeek = availableWeeks[0];
     
     for (const week of availableWeeks) {
@@ -147,14 +90,14 @@ export default function BabyDevelopment() {
       }
     }
     
-    setCurrentData(weeklyData[closestWeek]);
-  }, [currentWeek]);
+    setCurrentData(getWeeklyData(closestWeek));
+  }, [currentWeek, t]);
 
   const handleWeekSelect = (week: number) => {
     setCurrentWeek(week);
   };
 
-  const availableWeeks = Object.keys(weeklyData).map(Number).sort((a, b) => a - b);
+  const availableWeeks = [8, 12, 16, 20, 24, 28, 32, 36, 40];
   const trimester = Math.ceil(currentWeek / 13);
   const progress = (currentWeek / 40) * 100;
 
@@ -168,7 +111,7 @@ export default function BabyDevelopment() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Développement</Text>
+          <Text style={styles.headerTitle}>{t('babyDevelopment.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -176,15 +119,15 @@ export default function BabyDevelopment() {
           <View style={styles.content}>
             <View style={styles.progressCard}>
               <View style={styles.progressHeader}>
-                <Text style={styles.weekNumber}>Semaine {currentWeek}</Text>
+                <Text style={styles.weekNumber}>{t('babyDevelopment.week')} {currentWeek}</Text>
                 <View style={styles.trimesterBadge}>
-                  <Text style={styles.trimesterText}>{trimester}er trimestre</Text>
+                  <Text style={styles.trimesterText}>{trimester}{t('babyDevelopment.trimester')}</Text>
                 </View>
               </View>
               <View style={styles.progressBarContainer}>
                 <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
               </View>
-              <Text style={styles.progressText}>{Math.round(progress)}% de la grossesse</Text>
+              <Text style={styles.progressText}>{Math.round(progress)}% {t('babyDevelopment.ofPregnancy')}</Text>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekSelector}>
@@ -196,7 +139,7 @@ export default function BabyDevelopment() {
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.weekButtonText, currentWeek === week && styles.weekButtonTextActive]}>
-                    S{week}
+                    {t('babyDevelopment.weekShort')}{week}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -212,13 +155,13 @@ export default function BabyDevelopment() {
                   <View style={styles.measurement}>
                     <Ionicons name="resize-outline" size={20} color="#C4ABDC" />
                     <Text style={styles.measurementValue}>{currentData.size}</Text>
-                    <Text style={styles.measurementLabel}>Taille</Text>
+                    <Text style={styles.measurementLabel}>{t('babyDevelopment.size')}</Text>
                   </View>
                   <View style={styles.measurementDivider} />
                   <View style={styles.measurement}>
                     <Ionicons name="barbell-outline" size={20} color="#C4ABDC" />
                     <Text style={styles.measurementValue}>{realBabyWeight.toFixed(2)} kg</Text>
-                    <Text style={styles.measurementLabel}>Poids</Text>
+                    <Text style={styles.measurementLabel}>{t('babyDevelopment.weight')}</Text>
                   </View>
                 </View>
               </View>
@@ -229,7 +172,7 @@ export default function BabyDevelopment() {
                 <View style={styles.sectionIcon}>
                   <Ionicons name="sparkles-outline" size={20} color="#C4ABDC" />
                 </View>
-                <Text style={styles.sectionTitle}>Développement du bébé</Text>
+                <Text style={styles.sectionTitle}>{t('babyDevelopment.babyDevelopment')}</Text>
               </View>
               <View style={styles.listCard}>
                 {currentData.developments.map((dev, idx) => (
@@ -246,7 +189,7 @@ export default function BabyDevelopment() {
                 <View style={styles.sectionIcon}>
                   <Ionicons name="heart-outline" size={20} color="#FFB5E8" />
                 </View>
-                <Text style={styles.sectionTitle}>Symptômes courants</Text>
+                <Text style={styles.sectionTitle}>{t('babyDevelopment.commonSymptoms')}</Text>
               </View>
               <View style={styles.listCard}>
                 {currentData.motherSymptoms.map((symptom, idx) => (
@@ -263,7 +206,7 @@ export default function BabyDevelopment() {
                 <View style={styles.sectionIcon}>
                   <Ionicons name="bulb-outline" size={20} color="#9B88D3" />
                 </View>
-                <Text style={styles.sectionTitle}>Conseils de la semaine</Text>
+                <Text style={styles.sectionTitle}>{t('babyDevelopment.weeklyTips')}</Text>
               </View>
               <View style={styles.listCard}>
                 {currentData.tips.map((tip, idx) => (
@@ -287,7 +230,7 @@ export default function BabyDevelopment() {
               >
                 <Ionicons name="chevron-back" size={24} color={currentWeek <= 8 ? '#5D3A7D' : '#C4ABDC'} />
                 <Text style={[styles.navButtonText, currentWeek <= 8 && styles.navButtonTextDisabled]}>
-                  Semaine précédente
+                  {t('babyDevelopment.previousWeek')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -300,7 +243,7 @@ export default function BabyDevelopment() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.navButtonText, currentWeek >= 40 && styles.navButtonTextDisabled]}>
-                  Semaine suivante
+                  {t('babyDevelopment.nextWeek')}
                 </Text>
                 <Ionicons name="chevron-forward" size={24} color={currentWeek >= 40 ? '#5D3A7D' : '#C4ABDC'} />
               </TouchableOpacity>

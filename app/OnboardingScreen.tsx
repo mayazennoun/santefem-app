@@ -6,9 +6,11 @@ import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useTranslation } from 'react-i18next';
 import { auth, db } from './firebaseConfig';
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [step, setStep] = useState(1);
 
@@ -26,7 +28,6 @@ export default function OnboardingScreen() {
 
   const calculateTrimester = (week: number) => (week <= 13 ? 1 : week <= 27 ? 2 : 3);
 
-  
   const babyWeights: { [key: number]: number } = {
     8: 0.01,
     10: 0.04,
@@ -50,10 +51,8 @@ export default function OnboardingScreen() {
   const calculateBabyWeight = (week: number) => {
     const weeks = Object.keys(babyWeights).map(Number).sort((a, b) => a - b);
 
-    
     if (week <= weeks[0]) return babyWeights[weeks[0]];
 
-    
     for (let i = 0; i < weeks.length - 1; i++) {
       if (week >= weeks[i] && week <= weeks[i + 1]) {
         const w1 = weeks[i];
@@ -64,30 +63,29 @@ export default function OnboardingScreen() {
       }
     }
 
-    
     return babyWeights[weeks[weeks.length - 1]];
   };
 
   const handleNext = () => {
     if (step === 1 && (!nom || !prenom || !age))
-      return Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return Alert.alert(t('common.error'), t('common.fillAllFields'));
 
     if (step === 2 && (!poids || !taille || !poidsAvantGrossesse))
-      return Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return Alert.alert(t('common.error'), t('common.fillAllFields'));
 
     setStep(step + 1);
   };
 
   const handleFinish = async () => {
     if (!semaineGrossesse || !dateAccouchement)
-      return Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return Alert.alert(t('common.error'), t('common.fillAllFields'));
 
     const weekNum = parseInt(semaineGrossesse);
     if (weekNum < 1 || weekNum > 42)
-      return Alert.alert('Erreur', 'La semaine de grossesse doit être entre 1 et 42');
+      return Alert.alert(t('common.error'), t('onboarding.weekHelper'));
 
     if (!auth.currentUser)
-      return Alert.alert('Erreur', 'Utilisateur non connecté');
+      return Alert.alert(t('common.error'), 'Utilisateur non connecté');
 
     const userData = {
       nom,
@@ -105,11 +103,11 @@ export default function OnboardingScreen() {
 
     try {
       await setDoc(doc(db, 'users', auth.currentUser.uid), userData);
-      Alert.alert('Succès', 'Profil créé avec succès !');
+      Alert.alert(t('common.success'), t('onboarding.profileCreated'));
       router.replace('/home');
     } catch (err) {
       console.error(err);
-      Alert.alert('Erreur', 'Impossible de sauvegarder les données');
+      Alert.alert(t('common.error'), 'Impossible de sauvegarder les données');
     }
   };
 
@@ -121,22 +119,41 @@ export default function OnboardingScreen() {
         <Ionicons name="person-outline" size={40} color="#C4ABDC" />
       </View>
 
-      <Text style={styles.stepTitle}>Informations personnelles</Text>
-      <Text style={styles.stepSubtitle}>Commençons par vous connaître</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.personal')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.personalSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Nom</Text>
-        <TextInput style={styles.input} placeholder="Votre nom" placeholderTextColor="#9B88D3" value={nom} onChangeText={setNom} />
+        <Text style={styles.label}>{t('onboarding.lastName')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder={t('onboarding.lastName')} 
+          placeholderTextColor="#9B88D3" 
+          value={nom} 
+          onChangeText={setNom} 
+        />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Prénom</Text>
-        <TextInput style={styles.input} placeholder="Votre prénom" placeholderTextColor="#9B88D3" value={prenom} onChangeText={setPrenom} />
+        <Text style={styles.label}>{t('onboarding.firstName')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder={t('onboarding.firstName')} 
+          placeholderTextColor="#9B88D3" 
+          value={prenom} 
+          onChangeText={setPrenom} 
+        />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Âge</Text>
-        <TextInput style={styles.input} placeholder="Votre âge" placeholderTextColor="#9B88D3" keyboardType="numeric" value={age} onChangeText={setAge} />
+        <Text style={styles.label}>{t('onboarding.age')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder={t('onboarding.age')} 
+          placeholderTextColor="#9B88D3" 
+          keyboardType="numeric" 
+          value={age} 
+          onChangeText={setAge} 
+        />
       </View>
     </View>
   );
@@ -147,22 +164,43 @@ export default function OnboardingScreen() {
         <Ionicons name="fitness-outline" size={40} color="#C4ABDC" />
       </View>
 
-      <Text style={styles.stepTitle}>Informations physiques</Text>
-      <Text style={styles.stepSubtitle}>Pour un suivi personnalisé</Text>
+      <Text style={styles.stepTitle}>{t('onboarding.physical')}</Text>
+      <Text style={styles.stepSubtitle}>{t('onboarding.physicalSubtitle')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Poids actuel</Text>
-        <TextInput style={styles.input} placeholder="Ex: 65" placeholderTextColor="#9B88D3" keyboardType="decimal-pad" value={poids} onChangeText={setPoids} />
+        <Text style={styles.label}>{t('onboarding.currentWeight')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder="Ex: 65" 
+          placeholderTextColor="#9B88D3" 
+          keyboardType="decimal-pad" 
+          value={poids} 
+          onChangeText={setPoids} 
+        />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Taille (cm)</Text>
-        <TextInput style={styles.input} placeholder="Ex: 165" placeholderTextColor="#9B88D3" keyboardType="numeric" value={taille} onChangeText={setTaille} />
+        <Text style={styles.label}>{t('onboarding.height')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder="Ex: 165" 
+          placeholderTextColor="#9B88D3" 
+          keyboardType="numeric" 
+          value={taille} 
+          onChangeText={setTaille} 
+        />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Poids avant grossesse</Text>
-        <TextInput style={styles.input} placeholder="Ex: 60" placeholderTextColor="#9B88D3" keyboardType="decimal-pad" value={poidsAvantGrossesse} onChangeText={setPoidsAvantGrossesse} />
+        <Text style={styles.label}>{t('onboarding.weightBeforePregnancy')}</Text>
+        <TextInput 
+          style={styles.input} 
+          placeholder="Ex: 60" 
+          placeholderTextColor="#9B88D3" 
+          keyboardType="decimal-pad" 
+          value={poidsAvantGrossesse} 
+          onChangeText={setPoidsAvantGrossesse} 
+        />
       </View>
     </View>
   );
@@ -176,31 +214,44 @@ export default function OnboardingScreen() {
           <Ionicons name="body-outline" size={40} color="#C4ABDC" />
         </View>
 
-        <Text style={styles.stepTitle}>Informations de grossesse</Text>
-        <Text style={styles.stepSubtitle}>Dernière étape</Text>
+        <Text style={styles.stepTitle}>{t('onboarding.pregnancy')}</Text>
+        <Text style={styles.stepSubtitle}>{t('onboarding.pregnancySubtitle')}</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Semaine de grossesse</Text>
-          <TextInput style={styles.input} placeholder="Ex: 24" placeholderTextColor="#9B88D3" keyboardType="numeric" value={semaineGrossesse} onChangeText={setSemaineGrossesse} />
-          <Text style={styles.helperText}>Entre 1 et 42 semaines</Text>
+          <Text style={styles.label}>{t('onboarding.weekOfPregnancy')}</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Ex: 24" 
+            placeholderTextColor="#9B88D3" 
+            keyboardType="numeric" 
+            value={semaineGrossesse} 
+            onChangeText={setSemaineGrossesse} 
+          />
+          <Text style={styles.helperText}>{t('onboarding.weekHelper')}</Text>
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Date prévue d'accouchement</Text>
-          <TextInput style={styles.input} placeholder="JJ/MM/AAAA" placeholderTextColor="#9B88D3" value={dateAccouchement} onChangeText={setDateAccouchement} />
+          <Text style={styles.label}>{t('onboarding.dueDate')}</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="JJ/MM/AAAA" 
+            placeholderTextColor="#9B88D3" 
+            value={dateAccouchement} 
+            onChangeText={setDateAccouchement} 
+          />
         </View>
 
         {validWeek && (
           <View style={styles.previewCard}>
-            <Text style={styles.previewTitle}>Aperçu</Text>
+            <Text style={styles.previewTitle}>{t('onboarding.preview')}</Text>
 
             <View style={styles.previewRow}>
-              <Text style={styles.previewLabel}>Trimestre</Text>
+              <Text style={styles.previewLabel}>{t('onboarding.trimester')}</Text>
               <Text style={styles.previewValue}>{calculateTrimester(Number(semaineGrossesse))}</Text>
             </View>
 
             <View style={styles.previewRow}>
-              <Text style={styles.previewLabel}>Poids bébé estimé</Text>
+              <Text style={styles.previewLabel}>{t('onboarding.estimatedBabyWeight')}</Text>
               <Text style={styles.previewValue}>{calculateBabyWeight(Number(semaineGrossesse))} kg</Text>
             </View>
           </View>
@@ -223,7 +274,7 @@ export default function OnboardingScreen() {
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]} />
             </View>
-            <Text style={styles.progressText}>Étape {step}/3</Text>
+            <Text style={styles.progressText}>{t('onboarding.step')} {step}/3</Text>
           </View>
 
           {step === 1 && renderStep1()}
@@ -234,13 +285,13 @@ export default function OnboardingScreen() {
             {step > 1 && (
               <TouchableOpacity style={styles.backButton} onPress={handleBack}>
                 <Ionicons name="arrow-back" size={20} color="#C4ABDC" />
-                <Text style={styles.backButtonText}>Retour</Text>
+                <Text style={styles.backButtonText}>{t('onboarding.back')}</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.nextButton} onPress={step === 3 ? handleFinish : handleNext}>
               <LinearGradient colors={['#C4ABDC', '#9B88D3', '#876BB8']} style={styles.nextButtonGradient}>
-                <Text style={styles.nextButtonText}>{step === 3 ? 'Terminer' : 'Suivant'}</Text>
+                <Text style={styles.nextButtonText}>{step === 3 ? t('onboarding.finish') : t('onboarding.next')}</Text>
                 <Ionicons name={step === 3 ? 'checkmark' : 'arrow-forward'} size={20} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>

@@ -16,6 +16,7 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Modal,
@@ -53,14 +54,8 @@ interface Comment {
   createdAt: Date;
 }
 
-const categories = [
-  { value: 'conseil', label: 'Conseil', icon: 'bulb-outline', color: '#C4ABDC' },
-  { value: 'question', label: 'Question', icon: 'help-circle-outline', color: '#9B88D3' },
-  { value: 'témoignage', label: 'Témoignage', icon: 'heart-outline', color: '#FFB5E8' },
-  { value: 'soutien', label: 'Soutien', icon: 'people-outline', color: '#876BB8' },
-];
-
 export default function Community() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -80,6 +75,13 @@ export default function Community() {
   const [commentAnonymous, setCommentAnonymous] = useState(false);
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
+
+  const categories = [
+    { value: 'conseil', label: t('community.advice'), icon: 'bulb-outline', color: '#C4ABDC' },
+    { value: 'question', label: t('community.question'), icon: 'help-circle-outline', color: '#9B88D3' },
+    { value: 'témoignage', label: t('community.testimony'), icon: 'heart-outline', color: '#FFB5E8' },
+    { value: 'soutien', label: t('community.support'), icon: 'people-outline', color: '#876BB8' },
+  ];
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -117,7 +119,7 @@ export default function Community() {
     if (!auth.currentUser) return;
 
     if (!title.trim() || !content.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert(t('common.error'), t('common.fillAllFields'));
       return;
     }
 
@@ -139,9 +141,9 @@ export default function Community() {
       await addDoc(collection(db, 'community_posts'), postData);
       resetForm();
       setModalVisible(false);
-      Alert.alert('Succès', 'Publication partagée avec la communauté');
+      Alert.alert(t('common.success'), t('community.publicationShared'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de publier');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
@@ -164,22 +166,22 @@ export default function Community() {
         });
       }
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre à jour le like');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
   const handleDeletePost = (postId: string) => {
-    Alert.alert('Confirmation', 'Supprimer cette publication ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('community.deletePublication'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'community_posts', postId));
             setCommentsModalVisible(false);
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
@@ -209,7 +211,7 @@ export default function Community() {
     if (!auth.currentUser || !selectedPost) return;
 
     if (!commentInput.trim()) {
-      Alert.alert('Erreur', 'Veuillez écrire un commentaire');
+      Alert.alert(t('common.error'), t('common.fillAllFields'));
       return;
     }
 
@@ -229,17 +231,17 @@ export default function Community() {
       setCommentInput('');
       setCommentAnonymous(false);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter le commentaire');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     if (!auth.currentUser || !selectedPost) return;
 
-    Alert.alert('Confirmation', 'Supprimer ce commentaire ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.confirm'), t('community.deleteComment'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -248,7 +250,7 @@ export default function Community() {
               commentsCount: increment(-1),
             });
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
@@ -296,22 +298,22 @@ export default function Community() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Communauté</Text>
+          <Text style={styles.headerTitle}>{t('community.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{posts.length}</Text>
-            <Text style={styles.statLabel}>Publications</Text>
+            <Text style={styles.statLabel}>{t('community.publications')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{myPosts.length}</Text>
-            <Text style={styles.statLabel}>Mes posts</Text>
+            <Text style={styles.statLabel}>{t('community.myPosts')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{totalLikesReceived}</Text>
-            <Text style={styles.statLabel}>Likes reçus</Text>
+            <Text style={styles.statLabel}>{t('community.likesReceived')}</Text>
           </View>
         </View>
 
@@ -327,7 +329,7 @@ export default function Community() {
             activeOpacity={0.7}
           >
             <Text style={[styles.filterChipText, !filterCategory && styles.filterChipTextActive]}>
-              Tout
+              {t('community.all')}
             </Text>
           </TouchableOpacity>
           {categories.map(cat => (
@@ -354,9 +356,9 @@ export default function Community() {
             {filteredPosts.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubbles-outline" size={60} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucune publication</Text>
+                <Text style={styles.emptyText}>{t('community.noPublication')}</Text>
                 <Text style={styles.emptySubtext}>
-                  Soyez la première à partager !
+                  {t('community.beFirst')}
                 </Text>
               </View>
             ) : (
@@ -454,19 +456,19 @@ export default function Community() {
           </LinearGradient>
         </TouchableOpacity>
 
-      
+        
         <Modal visible={modalVisible} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nouvelle publication</Text>
+                <Text style={styles.modalTitle}>{t('community.newPublication')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>Titre *</Text>
+                <Text style={styles.inputLabel}>{t('community.publicationTitle')} *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Ex: Besoin de conseils pour..."
@@ -475,7 +477,7 @@ export default function Community() {
                   onChangeText={setTitle}
                 />
 
-                <Text style={styles.inputLabel}>Catégorie *</Text>
+                <Text style={styles.inputLabel}>{t('journal.category')} *</Text>
                 <View style={styles.categorySelector}>
                   {categories.map(cat => (
                     <TouchableOpacity
@@ -502,10 +504,10 @@ export default function Community() {
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Votre message *</Text>
+                <Text style={styles.inputLabel}>{t('community.yourMessage')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Partagez votre expérience, posez une question..."
+                  placeholder={t('community.messagePlaceholder')}
                   placeholderTextColor="#9B88D3"
                   multiline
                   numberOfLines={8}
@@ -521,7 +523,7 @@ export default function Community() {
                 >
                   <View style={styles.anonymousToggleLeft}>
                     <Ionicons name="eye-off-outline" size={20} color="#C4ABDC" />
-                    <Text style={styles.anonymousToggleText}>Publier en anonyme</Text>
+                    <Text style={styles.anonymousToggleText}>{t('community.publishAnonymously')}</Text>
                   </View>
                   <View style={[styles.toggle, isAnonymous && styles.toggleActive]}>
                     <View style={[styles.toggleThumb, isAnonymous && styles.toggleThumbActive]} />
@@ -531,8 +533,7 @@ export default function Community() {
                 <View style={styles.infoCard}>
                   <Ionicons name="information-circle-outline" size={20} color="#9B88D3" />
                   <Text style={styles.infoText}>
-                    Votre publication sera visible par toutes les utilisatrices. 
-                    Soyez respectueuse et bienveillante.
+                    {t('community.communityInfo')}
                   </Text>
                 </View>
 
@@ -543,7 +544,7 @@ export default function Community() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Publier</Text>
+                    <Text style={styles.saveButtonText}>{t('community.publish')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
@@ -556,7 +557,7 @@ export default function Community() {
           <View style={styles.commentsModalOverlay}>
             <View style={styles.commentsModalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Commentaires</Text>
+                <Text style={styles.modalTitle}>{t('community.comments')}</Text>
                 <TouchableOpacity onPress={() => setCommentsModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
@@ -569,7 +570,7 @@ export default function Community() {
                       {selectedPost.title}
                     </Text>
                     <Text style={styles.selectedPostMeta}>
-                      Par {selectedPost.userName} • S{selectedPost.week}
+                      {t('community.by')} {selectedPost.userName} • S{selectedPost.week}
                     </Text>
                   </View>
 
@@ -577,8 +578,8 @@ export default function Community() {
                     {comments.length === 0 ? (
                       <View style={styles.emptyComments}>
                         <Ionicons name="chatbubble-outline" size={40} color="#5D3A7D" />
-                        <Text style={styles.emptyCommentsText}>Aucun commentaire</Text>
-                        <Text style={styles.emptyCommentsSubtext}>Soyez la première à réagir</Text>
+                        <Text style={styles.emptyCommentsText}>{t('community.noComment')}</Text>
+                        <Text style={styles.emptyCommentsSubtext}>{t('community.beFirstToReact')}</Text>
                       </View>
                     ) : (
                       comments.map(comment => {
@@ -628,7 +629,7 @@ export default function Community() {
                     </TouchableOpacity>
                     <TextInput
                       style={styles.commentInput}
-                      placeholder="Écrire un commentaire..."
+                      placeholder={t('community.writeComment')}
                       placeholderTextColor="#9B88D3"
                       value={commentInput}
                       onChangeText={setCommentInput}

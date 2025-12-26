@@ -3,13 +3,13 @@ import * as Localization from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-// Importation des traductions
+
 import ar from './locales/ar.json';
 import fr from './locales/fr.json';
 
 const LANGUAGE_KEY = '@app_language';
 
-// Configuration de i18n
+
 i18n
   .use(initReactI18next)
   .init({
@@ -17,7 +17,7 @@ i18n
       fr: { translation: fr },
       ar: { translation: ar },
     },
-    lng: 'fr', // Langue par défaut
+    lng: 'fr', 
     fallbackLng: 'fr',
     compatibilityJSON: 'v4',
     interpolation: {
@@ -25,14 +25,14 @@ i18n
     },
   });
 
-// Charger la langue sauvegardée au démarrage
+
 export const loadSavedLanguage = async () => {
   try {
     const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
     if (savedLanguage) {
       await i18n.changeLanguage(savedLanguage);
     } else {
-      // Utiliser la langue du système si disponible
+      
       const locales = Localization.getLocales();
       const systemLanguage = locales && locales.length > 0 ? locales[0].languageCode : null;
       if (systemLanguage && ['fr', 'ar'].includes(systemLanguage)) {
@@ -44,7 +44,7 @@ export const loadSavedLanguage = async () => {
   }
 };
 
-// Sauvegarder la langue choisie
+
 export const saveLanguage = async (language: string) => {
   try {
     await AsyncStorage.setItem(LANGUAGE_KEY, language);

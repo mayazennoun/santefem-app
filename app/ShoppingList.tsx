@@ -4,16 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { auth, db } from './firebaseConfig';
 
@@ -25,17 +26,25 @@ interface ShoppingItem {
   createdAt: Date;
 }
 
-type Category = 'Bébé' | 'Maman' | 'Maison' | 'Autre';
+type Category = 'baby' | 'mom' | 'house' | 'other';
 
 export default function ShoppingList() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [itemName, setItemName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<Category>('Bébé');
-  const [filterCategory, setFilterCategory] = useState<Category | 'Tous'>('Tous');
+  const [selectedCategory, setSelectedCategory] = useState<Category>('baby');
+  const [filterCategory, setFilterCategory] = useState<Category | 'all'>('all');
 
   const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold });
+
+  const categories: Category[] = ['baby', 'mom', 'house', 'other'];
+
+  const getCategoryLabel = (cat: Category | 'all') => {
+    if (cat === 'all') return t('shoppingList.all');
+    return t(`shoppingList.${cat}`);
+  };
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -63,7 +72,7 @@ export default function ShoppingList() {
     if (!auth.currentUser) return;
 
     if (!itemName.trim()) {
-      Alert.alert('Erreur', 'Veuillez saisir un article');
+      Alert.alert(t('common.error'), t('shoppingList.enterItem'));
       return;
     }
 
@@ -77,9 +86,9 @@ export default function ShoppingList() {
 
       setItemName('');
       setModalVisible(false);
-      Alert.alert('Succès', 'Article ajouté à la liste');
+      Alert.alert(t('common.success'), t('shoppingList.itemAdded'));
     } catch (error) {
-      Alert.alert('Erreur', "Impossible d'ajouter l'article");
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
@@ -91,40 +100,38 @@ export default function ShoppingList() {
         purchased: !currentStatus,
       });
     } catch (error) {
-      Alert.alert('Erreur', "Impossible de modifier l'article");
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
   const handleDeleteItem = async (itemId: string) => {
     if (!auth.currentUser) return;
 
-    Alert.alert('Supprimer', 'Êtes-vous sûr de vouloir supprimer cet article ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('common.delete'), t('shoppingList.deleteItem'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'shopping_items', itemId));
           } catch (error) {
-            Alert.alert('Erreur', "Impossible de supprimer l'article");
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
     ]);
   };
 
-  const categories: Category[] = ['Bébé', 'Maman', 'Maison', 'Autre'];
-
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'Bébé':
+      case 'baby':
         return 'body-outline';
-      case 'Maman':
+      case 'mom':
         return 'heart-outline';
-      case 'Maison':
+      case 'house':
         return 'home-outline';
-      case 'Autre':
+      case 'other':
         return 'ellipsis-horizontal-outline';
       default:
         return 'bag-outline';
@@ -133,13 +140,13 @@ export default function ShoppingList() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'Bébé':
+      case 'baby':
         return '#FFB5E8';
-      case 'Maman':
+      case 'mom':
         return '#C4ABDC';
-      case 'Maison':
+      case 'house':
         return '#9B88D3';
-      case 'Autre':
+      case 'other':
         return '#876BB8';
       default:
         return '#C4ABDC';
@@ -147,7 +154,7 @@ export default function ShoppingList() {
   };
 
   const filteredItems =
-    filterCategory === 'Tous' ? items : items.filter(item => item.category === filterCategory);
+    filterCategory === 'all' ? items : items.filter(item => item.category === filterCategory);
 
   const purchasedCount = items.filter(item => item.purchased).length;
   const totalCount = items.length;
@@ -162,7 +169,7 @@ export default function ShoppingList() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Liste de Courses</Text>
+          <Text style={styles.headerTitle}>{t('shoppingList.title')}</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
             <Ionicons name="add" size={24} color="#C4ABDC" />
           </TouchableOpacity>
@@ -175,10 +182,10 @@ export default function ShoppingList() {
                 <Ionicons name="checkmark-circle" size={32} color="#C4ABDC" />
                 <View style={styles.progressTextContainer}>
                   <Text style={styles.progressTitle}>
-                    {purchasedCount}/{totalCount} articles achetés
+                    {purchasedCount}/{totalCount} {t('shoppingList.itemsPurchased')}
                   </Text>
                   <Text style={styles.progressSubtitle}>
-                    {totalCount > 0 ? Math.round((purchasedCount / totalCount) * 100) : 0}% complété
+                    {totalCount > 0 ? Math.round((purchasedCount / totalCount) * 100) : 0}% {t('shoppingList.completed')}
                   </Text>
                 </View>
               </View>
@@ -194,13 +201,13 @@ export default function ShoppingList() {
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
               <TouchableOpacity
-                style={[styles.categoryChip, filterCategory === 'Tous' && styles.categoryChipActive]}
-                onPress={() => setFilterCategory('Tous')}
+                style={[styles.categoryChip, filterCategory === 'all' && styles.categoryChipActive]}
+                onPress={() => setFilterCategory('all')}
               >
                 <Text
-                  style={[styles.categoryChipText, filterCategory === 'Tous' && styles.categoryChipTextActive]}
+                  style={[styles.categoryChipText, filterCategory === 'all' && styles.categoryChipTextActive]}
                 >
-                  Tous ({items.length})
+                  {getCategoryLabel('all')} ({items.length})
                 </Text>
               </TouchableOpacity>
               {categories.map(cat => {
@@ -219,7 +226,7 @@ export default function ShoppingList() {
                     <Text
                       style={[styles.categoryChipText, filterCategory === cat && styles.categoryChipTextActive]}
                     >
-                      {cat} ({count})
+                      {getCategoryLabel(cat)} ({count})
                     </Text>
                   </TouchableOpacity>
                 );
@@ -229,11 +236,11 @@ export default function ShoppingList() {
             {filteredItems.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="cart-outline" size={60} color="#5D3A7D" />
-                <Text style={styles.emptyText}>Aucun article</Text>
+                <Text style={styles.emptyText}>{t('shoppingList.noItem')}</Text>
                 <Text style={styles.emptySubtext}>
-                  {filterCategory === 'Tous'
-                    ? 'Ajoutez votre premier article'
-                    : `Aucun article dans ${filterCategory}`}
+                  {filterCategory === 'all'
+                    ? t('shoppingList.addFirstItem')
+                    : `${t('shoppingList.noItemInCategory')} ${getCategoryLabel(filterCategory)}`}
                 </Text>
               </View>
             ) : (
@@ -259,7 +266,7 @@ export default function ShoppingList() {
                         color={getCategoryColor(item.category)}
                       />
                       <Text style={[styles.categoryBadgeText, { color: getCategoryColor(item.category) }]}>
-                        {item.category}
+                        {getCategoryLabel(item.category as Category)}
                       </Text>
                     </View>
                   </View>
@@ -280,7 +287,7 @@ export default function ShoppingList() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Nouvel article</Text>
+                <Text style={styles.modalTitle}>{t('shoppingList.newItem')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
                 </TouchableOpacity>
@@ -288,17 +295,17 @@ export default function ShoppingList() {
 
               <View style={styles.modalBody}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Nom de l'article</Text>
+                  <Text style={styles.inputLabel}>{t('shoppingList.itemName')}</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Ex: Body pour bébé, Coussin d'allaitement..."
+                    placeholder={t('shoppingList.itemPlaceholder')}
                     placeholderTextColor="#9B88D3"
                     value={itemName}
                     onChangeText={setItemName}
                   />
                 </View>
 
-                <Text style={styles.inputLabel}>Catégorie</Text>
+                <Text style={styles.inputLabel}>{t('journal.category')}</Text>
                 <View style={styles.categoryGrid}>
                   {categories.map(cat => (
                     <TouchableOpacity
@@ -320,7 +327,7 @@ export default function ShoppingList() {
                           selectedCategory === cat && styles.categoryButtonTextActive,
                         ]}
                       >
-                        {cat}
+                        {getCategoryLabel(cat)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -333,7 +340,7 @@ export default function ShoppingList() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Ajouter à la liste</Text>
+                    <Text style={styles.saveButtonText}>{t('shoppingList.addToList')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>

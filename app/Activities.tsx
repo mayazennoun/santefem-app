@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
@@ -36,6 +37,7 @@ interface Activity {
 }
 
 export default function Activities() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -87,13 +89,13 @@ export default function Activities() {
 
     if (selectedType === 'exercise') {
       if (!exerciseType.trim() || !duration) {
-        Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+        Alert.alert(t('common.error'), t('activities.fillAllFields'));
         return;
       }
       activityData = { ...activityData, exerciseType, duration: parseInt(duration) };
     } else {
       if (!mealType.trim() || foods.length === 0) {
-        Alert.alert('Erreur', 'Veuillez remplir le type de repas et ajouter des aliments');
+        Alert.alert(t('common.error'), t('activities.fillMealAndFoods'));
         return;
       }
       activityData = {
@@ -109,9 +111,9 @@ export default function Activities() {
       await addDoc(collection(db, 'users', auth.currentUser.uid, 'activities'), activityData);
       resetForm();
       setModalVisible(false);
-      Alert.alert('Succès', 'Activité ajoutée');
+      Alert.alert(t('common.success'), t('activities.activityAdded'));
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter l\'activité');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
@@ -122,21 +124,21 @@ export default function Activities() {
         completed: !currentStatus,
       });
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de mettre à jour');
+      Alert.alert(t('common.error'), t('activities.cannotUpdate'));
     }
   };
 
   const handleDeleteActivity = (id: string) => {
-    Alert.alert('Confirmation', 'Supprimer cette activité ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('activities.confirmDelete'), t('activities.deleteQuestion'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'users', auth.currentUser!.uid, 'activities', id));
           } catch (error) {
-            Alert.alert('Erreur', 'Impossible de supprimer');
+            Alert.alert(t('common.error'), t('activities.cannotDelete'));
           }
         },
       },
@@ -194,7 +196,7 @@ export default function Activities() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#C4ABDC" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Activités</Text>
+          <Text style={styles.headerTitle}>{t('activities.title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -204,21 +206,21 @@ export default function Activities() {
               <Ionicons name="timer-outline" size={24} color="#C4ABDC" />
             </View>
             <Text style={styles.statValue}>{todayExerciseTime} min</Text>
-            <Text style={styles.statLabel}>Exercice aujourd'hui</Text>
+            <Text style={styles.statLabel}>{t('activities.exerciseToday')}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <Ionicons name="flame-outline" size={24} color="#FFB5E8" />
             </View>
             <Text style={styles.statValue}>{todayCalories}</Text>
-            <Text style={styles.statLabel}>Calories</Text>
+            <Text style={styles.statLabel}>{t('activities.calories')}</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
               <Ionicons name="water-outline" size={24} color="#9B88D3" />
             </View>
             <Text style={styles.statValue}>{todayWater} ml</Text>
-            <Text style={styles.statLabel}>Eau</Text>
+            <Text style={styles.statLabel}>{t('activities.water')}</Text>
           </View>
         </View>
 
@@ -229,7 +231,7 @@ export default function Activities() {
             activeOpacity={0.7}
           >
             <Ionicons name="fitness-outline" size={20} color={selectedTab === 'exercise' ? '#1B0E20' : '#C4ABDC'} />
-            <Text style={[styles.tabText, selectedTab === 'exercise' && styles.tabTextActive]}>Exercices</Text>
+            <Text style={[styles.tabText, selectedTab === 'exercise' && styles.tabTextActive]}>{t('activities.exercises')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, selectedTab === 'nutrition' && styles.tabActive]}
@@ -237,7 +239,7 @@ export default function Activities() {
             activeOpacity={0.7}
           >
             <Ionicons name="nutrition-outline" size={20} color={selectedTab === 'nutrition' ? '#1B0E20' : '#C4ABDC'} />
-            <Text style={[styles.tabText, selectedTab === 'nutrition' && styles.tabTextActive]}>Nutrition</Text>
+            <Text style={[styles.tabText, selectedTab === 'nutrition' && styles.tabTextActive]}>{t('activities.nutrition')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -250,9 +252,9 @@ export default function Activities() {
                   size={60}
                   color="#5D3A7D"
                 />
-                <Text style={styles.emptyText}>Aucune activité</Text>
+                <Text style={styles.emptyText}>{t('activities.noActivity')}</Text>
                 <Text style={styles.emptySubtext}>
-                  Ajoutez votre {selectedTab === 'exercise' ? 'premier exercice' : 'premier repas'}
+                  {selectedTab === 'exercise' ? t('activities.addFirstExercise') : t('activities.addFirstMeal')}
                 </Text>
               </View>
             ) : (
@@ -283,7 +285,7 @@ export default function Activities() {
                     {activity.type === 'exercise' && (
                       <View style={styles.activityDetail}>
                         <Ionicons name="timer-outline" size={14} color="#9B88D3" />
-                        <Text style={styles.activityDetailText}>{activity.duration} minutes</Text>
+                        <Text style={styles.activityDetailText}>{activity.duration} {t('activities.minutes')}</Text>
                       </View>
                     )}
                     {activity.type === 'nutrition' && (
@@ -348,7 +350,7 @@ export default function Activities() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  Ajouter {selectedType === 'exercise' ? 'un exercice' : 'un repas'}
+                  {selectedType === 'exercise' ? t('activities.addExercise') : t('activities.addMeal')}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#C4ABDC" />
@@ -358,19 +360,19 @@ export default function Activities() {
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                 {selectedType === 'exercise' ? (
                   <>
-                    <Text style={styles.inputLabel}>Type d'exercice *</Text>
+                    <Text style={styles.inputLabel}>{t('activities.exerciseType')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: Yoga prénatal, Marche"
+                      placeholder={t('activities.exercisePlaceholder')}
                       placeholderTextColor="#9B88D3"
                       value={exerciseType}
                       onChangeText={setExerciseType}
                     />
 
-                    <Text style={styles.inputLabel}>Durée (minutes) *</Text>
+                    <Text style={styles.inputLabel}>{t('activities.durationMinutes')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 30"
+                      placeholder={t('activities.durationPlaceholder')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={duration}
@@ -378,35 +380,40 @@ export default function Activities() {
                     />
 
                     <View style={styles.recommendedCard}>
-                      <Text style={styles.recommendedTitle}>💡 Exercices recommandés</Text>
-                      <Text style={styles.recommendedText}>• Yoga prénatal (20-30 min)</Text>
-                      <Text style={styles.recommendedText}>• Marche légère (30-45 min)</Text>
-                      <Text style={styles.recommendedText}>• Natation douce (20-30 min)</Text>
-                      <Text style={styles.recommendedText}>• Pilates adapté (20-25 min)</Text>
+                      <Text style={styles.recommendedTitle}>{t('activities.recommendedExercises')}</Text>
+                      <Text style={styles.recommendedText}>{t('activities.prenatalYoga')}</Text>
+                      <Text style={styles.recommendedText}>{t('activities.lightWalk')}</Text>
+                      <Text style={styles.recommendedText}>{t('activities.gentleSwimming')}</Text>
+                      <Text style={styles.recommendedText}>{t('activities.adaptedPilates')}</Text>
                     </View>
                   </>
                 ) : (
                   <>
-                    <Text style={styles.inputLabel}>Type de repas *</Text>
+                    <Text style={styles.inputLabel}>{t('activities.mealType')}</Text>
                     <View style={styles.mealTypeSelector}>
-                      {['Petit-déjeuner', 'Déjeuner', 'Dîner', 'Collation'].map(meal => (
+                      {[
+                        { key: 'breakfast', label: t('activities.breakfast') },
+                        { key: 'lunch', label: t('activities.lunch') },
+                        { key: 'dinner', label: t('activities.dinner') },
+                        { key: 'snack', label: t('activities.snack') }
+                      ].map(meal => (
                         <TouchableOpacity
-                          key={meal}
-                          style={[styles.mealTypeButton, mealType === meal && styles.mealTypeButtonActive]}
-                          onPress={() => setMealType(meal)}
+                          key={meal.key}
+                          style={[styles.mealTypeButton, mealType === meal.label && styles.mealTypeButtonActive]}
+                          onPress={() => setMealType(meal.label)}
                         >
-                          <Text style={[styles.mealTypeText, mealType === meal && styles.mealTypeTextActive]}>
-                            {meal}
+                          <Text style={[styles.mealTypeText, mealType === meal.label && styles.mealTypeTextActive]}>
+                            {meal.label}
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
 
-                    <Text style={styles.inputLabel}>Aliments *</Text>
+                    <Text style={styles.inputLabel}>{t('activities.foods')}</Text>
                     <View style={styles.foodInputContainer}>
                       <TextInput
                         style={[styles.input, { flex: 1 }]}
-                        placeholder="Ajouter un aliment"
+                        placeholder={t('activities.addFood')}
                         placeholderTextColor="#9B88D3"
                         value={foodInput}
                         onChangeText={setFoodInput}
@@ -430,20 +437,20 @@ export default function Activities() {
                       </View>
                     )}
 
-                    <Text style={styles.inputLabel}>Calories (optionnel)</Text>
+                    <Text style={styles.inputLabel}>{t('activities.caloriesOptional')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 450"
+                      placeholder={t('activities.caloriesPlaceholder')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={calories}
                       onChangeText={setCalories}
                     />
 
-                    <Text style={styles.inputLabel}>Eau consommée (ml, optionnel)</Text>
+                    <Text style={styles.inputLabel}>{t('activities.waterIntakeOptional')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Ex: 500"
+                      placeholder={t('activities.waterPlaceholder')}
                       placeholderTextColor="#9B88D3"
                       keyboardType="numeric"
                       value={waterIntake}
@@ -451,8 +458,8 @@ export default function Activities() {
                     />
 
                     <View style={styles.recommendedCard}>
-                      <Text style={styles.recommendedTitle}>💧 Hydratation</Text>
-                      <Text style={styles.recommendedText}>Objectif: 2-3 litres par jour</Text>
+                      <Text style={styles.recommendedTitle}>{t('activities.hydration')}</Text>
+                      <Text style={styles.recommendedText}>{t('activities.hydrationGoal')}</Text>
                     </View>
                   </>
                 )}
@@ -464,7 +471,7 @@ export default function Activities() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +23,7 @@ import { auth } from './firebaseConfig';
 type FocusedInput = 'email' | 'password' | 'confirm' | 'name' | null;
 
 export default function Signup() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [fullName, setFullName] = useState('');
@@ -51,24 +53,22 @@ export default function Signup() {
     }
   }, [fontsLoaded]);
 
-  
   const handleFullNameChange = useCallback((text: string) => setFullName(text), []);
   const handleEmailChange = useCallback((text: string) => setEmail(text), []);
   const handlePasswordChange = useCallback((text: string) => setPassword(text), []);
   const handleConfirmPasswordChange = useCallback((text: string) => setConfirmPassword(text), []);
 
-
   const handleSignup = useCallback(async () => {
     if (!fullName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert(t('common.error'), t('login.errorFillFields'));
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+      Alert.alert(t('common.error'), t('signup.weakPassword'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      Alert.alert(t('common.error'), t('signup.passwordMismatch'));
       return;
     }
 
@@ -76,18 +76,18 @@ export default function Signup() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: fullName });
 
-      Alert.alert('Succès', `Compte créé pour ${fullName}`, [
-        { text: 'OK', onPress: () => router.push('/OnboardingScreen') }
+      Alert.alert(t('common.success'), `${t('signup.accountCreated')} ${fullName}`, [
+        { text: t('common.ok'), onPress: () => router.push('/OnboardingScreen') }
       ]);
     } catch (error: any) {
       let errorMessage = 'Erreur lors de la création du compte';
       if (error.code === 'auth/email-already-in-use') errorMessage = 'Cet email est déjà utilisé';
       else if (error.code === 'auth/invalid-email') errorMessage = 'Format d\'email invalide';
-      else if (error.code === 'auth/weak-password') errorMessage = 'Le mot de passe est trop faible';
+      else if (error.code === 'auth/weak-password') errorMessage = t('signup.weakPassword');
       else if (error.code === 'auth/network-request-failed') errorMessage = 'Erreur de connexion. Vérifiez votre internet';
-      Alert.alert('Erreur', errorMessage);
+      Alert.alert(t('common.error'), errorMessage);
     }
-  }, [fullName, email, password, confirmPassword, router]);
+  }, [fullName, email, password, confirmPassword, router, t]);
 
   const togglePasswordVisibility = useCallback(() => setShowPassword(prev => !prev), []);
   const toggleConfirmVisibility = useCallback(() => setShowConfirm(prev => !prev), []);
@@ -113,17 +113,17 @@ export default function Signup() {
           </Animated.View>
 
           <Animated.View style={{ opacity: fadeAnim }}>
-            <Text style={styles.appTitle}>SantéFem</Text>
-            <Text style={styles.subtitle}>Bienvenue parmi nous</Text>
+            <Text style={styles.appTitle}>{t('signup.title')}</Text>
+            <Text style={styles.subtitle}>{t('signup.subtitle')}</Text>
           </Animated.View>
 
           <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-            
+            {/* Nom complet */}
             <View style={inputStyle('name')}>
               <MaterialIcons name="person" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Nom complet"
+                placeholder={t('signup.fullName')}
                 placeholderTextColor="#CBBFE5"
                 autoCapitalize="words"
                 value={fullName}
@@ -133,12 +133,12 @@ export default function Signup() {
               />
             </View>
 
-            
+            {/* Email */}
             <View style={inputStyle('email')}>
               <MaterialIcons name="email" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Adresse e-mail"
+                placeholder={t('signup.email')}
                 placeholderTextColor="#CBBFE5"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -149,12 +149,12 @@ export default function Signup() {
               />
             </View>
 
-            
+            {/* Mot de passe */}
             <View style={inputStyle('password')}>
               <MaterialIcons name="lock" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Mot de passe"
+                placeholder={t('signup.password')}
                 placeholderTextColor="#CBBFE5"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -166,14 +166,14 @@ export default function Signup() {
                 <MaterialIcons name={showPassword ? 'visibility' : 'visibility-off'} size={18} color="#C4ABDC" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.passwordNote}>Minimum 8 caractères</Text>
+            <Text style={styles.passwordNote}>{t('signup.passwordNote')}</Text>
 
-            
+            {/* Confirmation mot de passe */}
             <View style={inputStyle('confirm')}>
               <MaterialIcons name="lock" size={18} color="#C4ABDC" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Confirmer le mot de passe"
+                placeholder={t('signup.confirmPassword')}
                 placeholderTextColor="#CBBFE5"
                 secureTextEntry={!showConfirm}
                 value={confirmPassword}
@@ -188,17 +188,17 @@ export default function Signup() {
 
             <TouchableOpacity style={styles.button} onPress={handleSignup}>
               <LinearGradient colors={['#BBA0E8', '#9B88D3', '#876BB8']} start={[0,0]} end={[1,1]} style={styles.buttonGradient}>
-                <Text style={styles.buttonText}>S'inscrire</Text>
+                <Text style={styles.buttonText}>{t('signup.signUp')}</Text>
                 <MaterialIcons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 6 }} />
               </LinearGradient>
             </TouchableOpacity>
 
             <Text style={styles.termsText}>
-              En vous inscrivant, vous acceptez nos <Text style={styles.termsLink}>Conditions d'utilisation</Text>
+              {t('signup.terms')} <Text style={styles.termsLink}>{t('signup.termsLink')}</Text>
             </Text>
 
             <TouchableOpacity style={styles.loginButton} onPress={goToLogin}>
-              <Text style={styles.loginButtonText}>Déjà un compte ? Se connecter</Text>
+              <Text style={styles.loginButtonText}>{t('signup.alreadyAccount')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>

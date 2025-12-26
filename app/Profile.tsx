@@ -74,7 +74,7 @@ export default function Profile() {
       t('profile.logout'),
       t('profile.logoutConfirm'),
       [
-        { text: t('profile.cancel'), style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('profile.logout'),
           style: 'destructive',
@@ -408,7 +408,7 @@ export default function Profile() {
                     end={[1, 1]}
                     style={styles.saveButtonGradient}
                   >
-                    <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
@@ -416,7 +416,7 @@ export default function Profile() {
           </View>
         </Modal>
 
-        {/* Modal de sélection de langue */}
+        
         <Modal visible={languageModalVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.languageModalContent}>
@@ -460,7 +460,7 @@ export default function Profile() {
                 style={styles.cancelButton}
                 onPress={() => setLanguageModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
