@@ -369,10 +369,6 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ---
 
-## 🙏 Remerciements
-
-- Toutes les futures mamans qui ont testé l'application
-
 <div align="center">
 
 **Fait avec ❤️ pour les futures mamans**
